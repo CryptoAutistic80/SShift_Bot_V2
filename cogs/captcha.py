@@ -1,5 +1,6 @@
 import logging
 import os
+import asyncio
 import random
 import string
 from typing import Optional
@@ -146,56 +147,37 @@ class Captcha(commands.Cog):
                 logging.warning('Verification settings not found')
                 await interaction.followup.send('Verification settings not found.')  # Changed to followup.send
                 return
-    
-            channel = self.bot.get_channel(int(verification_settings["verify_channel"]))
-            if channel:
-                await channel.send(f"Welcome to {interaction.guild.name}, please verify to enter {interaction.user.mention}")
-            await self.send_captcha(interaction.user, verification_settings)
+            
+            # Create a private thread with the user's display name
+            thread = await interaction.channel.create_thread(name=f"Verification-{interaction.user.display_name}", type=nextcord.ChannelType.private_thread)
+            
+            # Mention the user in the private thread, prompting them to complete the verification
+            await thread.send(f"{interaction.user.mention}, please complete the verification process below:")
+            
+            # Call send_captcha with the thread as an additional argument
+            await self.send_captcha(interaction.user, thread)
 
-    @nextcord.slash_command()
-    async def verify(self, inter):
-        logging.info('Verify command invoked')
-        await inter.response.defer()
-        
-        verification_settings = await retrieve_verification(inter.guild.id)
-        if verification_settings is None:
-            await inter.followup.send("Verification settings not found.")
-            logging.warning('Verification settings not found')
-            return
-        
-        if str(inter.channel.id) != verification_settings["verify_channel"]:
-            await inter.followup.send("This command can only be used in the verification channel.")
-            logging.warning('Verify command used in the wrong channel')
-            return
-    
-        guild_membership = await retrieve_guild_membership(inter.guild.id)
-        if guild_membership is None:
-            await inter.followup.send('Guild is not a member, verification inactive.')
-            logging.warning('Guild is not a member, verification inactive.')
-            return
-        
-        await self.send_captcha(inter.user, verification_settings)
-        await inter.followup.send(f"{inter.user.mention}, please verify using the captcha.")
-
-    async def send_captcha(self, member, verification_settings):
+    async def send_captcha(self, member, thread):
         logging.info('Sending captcha')
         
-        channel = self.bot.get_channel(int(verification_settings["verify_channel"]))
+        # Using the thread parameter as the channel
+        channel = thread
+    
         if not channel:
             logging.warning('Verification channel not found')
             return
-
+    
         captcha_code = self.generate_captcha_code()
         image = self.create_captcha_image(captcha_code)
         
         if not os.path.exists('temp'):
             os.makedirs('temp')
-
+    
         image_path = f'temp/captcha_{member.id}.png'
         image.save(image_path)
         
         self.captchas[member.id] = captcha_code
-
+    
         embed = nextcord.Embed(title="CAPTCHA Verification", description=f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {'_'*8}")
         files = [nextcord.File(image_path, filename=f'captcha_{member.id}.png')]
         embed.set_image(url=f'attachment://captcha_{member.id}.png')
