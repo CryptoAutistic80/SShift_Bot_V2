@@ -130,23 +130,27 @@ class Captcha(commands.Cog):
         print("Captcha Ready")
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        logging.info(f'Member joined: {member.id}')
-
-        guild_membership = await retrieve_guild_membership(member.guild.id)
-        if guild_membership is None:
-            logging.warning('Guild does not have a membership entry, setup cannot proceed.')
-            return
-
-        verification_settings = await retrieve_verification(member.guild.id)
-        if verification_settings is None:
-            logging.warning('Verification settings not found')
-            return
-
-        channel = self.bot.get_channel(int(verification_settings["verify_channel"]))
-        if channel:
-            await channel.send(f"Welcome to {member.guild.name}, please verify to enter {member.mention}")
-        await self.send_captcha(member, verification_settings)
+    async def on_interaction(self, interaction):
+        if interaction.data['custom_id'] == "start_verification":
+            await interaction.response.defer()  # Adding this line to defer the response
+            logging.info(f'Start verification initiated by: {interaction.user.id}')
+    
+            guild_membership = await retrieve_guild_membership(interaction.guild.id)
+            if guild_membership is None:
+                logging.warning('Guild does not have a membership entry, setup cannot proceed.')
+                await interaction.followup.send('Guild does not have a membership entry, setup cannot proceed.')  # Changed to followup.send
+                return
+    
+            verification_settings = await retrieve_verification(interaction.guild.id)
+            if verification_settings is None:
+                logging.warning('Verification settings not found')
+                await interaction.followup.send('Verification settings not found.')  # Changed to followup.send
+                return
+    
+            channel = self.bot.get_channel(int(verification_settings["verify_channel"]))
+            if channel:
+                await channel.send(f"Welcome to {interaction.guild.name}, please verify to enter {interaction.user.mention}")
+            await self.send_captcha(interaction.user, verification_settings)
 
     @nextcord.slash_command()
     async def verify(self, inter):
@@ -215,4 +219,3 @@ class Captcha(commands.Cog):
 def setup(bot):
     bot.add_cog(Captcha(bot))
     logging.info("Captcha cog loaded")
- 

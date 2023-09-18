@@ -37,5 +37,17 @@ class Admin(commands.Cog):
     
         await inter.response.send_message(response)
 
+        # Step 1.1: Clear the Verification Channel
+        channel = self.bot.get_channel(int(verify_channel))
+        if channel:
+            await channel.purge()
+
+        # Step 1.2: Post a Friendly Embed Message with a "Start Verification" Button
+        embed = nextcord.Embed(title="Welcome!", description="Click the button below to start the verification process.", color=0x00ff00)
+        view = nextcord.ui.View()
+        view.add_item(nextcord.ui.Button(label="Start Verification", custom_id="start_verification"))
+        await channel.send(embed=embed, view=view)
+
 def setup(bot):
     bot.add_cog(Admin(bot))
+
