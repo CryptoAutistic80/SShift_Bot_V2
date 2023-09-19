@@ -13,10 +13,38 @@ from nextcord.ui import Button, View
 
 from database.database_manager import retrieve_verification, retrieve_guild_membership
 
+
 class CaptchaButton(Button):
     def __init__(self, label, custom_id, row=None):
         super().__init__(style=nextcord.ButtonStyle.secondary, label=label, custom_id=custom_id)
         self.row = row
+
+
+class GetRoleView(View):
+    def __init__(self, member_id, role_id, thread):
+        super().__init__()
+        self.member_id = member_id
+        self.role_id = role_id
+        self.thread = thread
+
+    @nextcord.ui.button(label="Get Role", style=nextcord.ButtonStyle.success)
+    async def get_role(self, _: nextcord.ui.Button, interaction: nextcord.Interaction):
+        if interaction.guild and interaction.user and interaction.user.id == self.member_id:
+            verified_role = interaction.guild.get_role(self.role_id) if interaction.guild else None
+            member = interaction.guild.get_member(interaction.user.id) if interaction.guild and interaction.user else None
+            if verified_role and member:
+                await member.add_roles(verified_role)
+                await interaction.response.send_message("Role assigned successfully!")
+                await self.thread.delete()  # Removed the 'reason' argument
+                logging.info('Role assigned and thread deleted')
+            else:
+                if not verified_role:
+                    await interaction.response.send_message("Error: Role could not be found.")
+                    logging.warning('Role not found')
+                if not member:
+                    await interaction.response.send_message("Error: Member could not be found.")
+                    logging.warning('Member not found')
+
 
 class CaptchaView(View):
     def __init__(self, member_id, captcha_code):
@@ -46,40 +74,42 @@ class CaptchaView(View):
         self.add_item(regenerate_button)
 
         logging.info('CaptchaView initialized')
+      
 
     async def add_digit_to_input(self, interaction):
         if interaction.user.id == self.member_id:
             self.user_input += interaction.data['custom_id'].split('_')[1]
-
+    
             if self.embed_message:
                 embed = self.embed_message.embeds[0]
                 embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {self.user_input.ljust(8, '_')}"
                 embed.set_image(url=self.image_url)  
                 await self.embed_message.edit(embed=embed)
-
+    
             logging.info(f"Digit added to input: {interaction.data['custom_id'].split('_')[1]}")
-
+    
             if len(self.user_input) == 8:
                 verification_settings = await retrieve_verification(interaction.guild.id)
                 if verification_settings is None:
                     await interaction.channel.send("Verification settings not found.")
                     logging.warning('Verification settings not found')
                     return
-
-                verified_role = interaction.guild.get_role(int(verification_settings["verified_role"]))
-
+    
+                verified_role_id = int(verification_settings["verified_role"])
+    
                 if self.user_input == self.captcha_code:
-                    if verified_role:
-                        await interaction.user.add_roles(verified_role)
-                        await interaction.channel.send("Verification successful!")
-                        logging.info('Verification successful')
-                    else:
-                        await interaction.channel.send("Verification successful, but the role could not be assigned.")
-                        logging.warning('Verification successful, but the role could not be assigned')
+                    # Get the private thread channel
+                    thread = interaction.channel
+    
+                    # Create and send a message with the GetRoleView
+                    get_role_view = GetRoleView(interaction.user.id, verified_role_id, thread)
+                    await interaction.channel.send("Congratulations on successfully completing the captcha! Please click the button below to receive your role.", view=get_role_view)
+                    logging.info('Verification successful, awaiting role assignment')
                 else:
                     await interaction.channel.send("Verification failed. Please try again.")
                     logging.warning('Verification failed')
                     self.user_input = ""
+
 
     async def delete_last_digit(self, interaction):
         if interaction.user.id == self.member_id:
@@ -153,9 +183,13 @@ class Captcha(commands.Cog):
             
             # Mention the user in the private thread, prompting them to complete the verification
             await thread.send(f"{interaction.user.mention}, please complete the verification process below:")
+    
+            # Sending an ephemeral message in the channel inviting the user to the private thread
+            await interaction.followup.send(f'Please go to {thread.mention} to complete your verification.', ephemeral=True)
             
             # Call send_captcha with the thread as an additional argument
             await self.send_captcha(interaction.user, thread)
+
 
     async def send_captcha(self, member, thread):
         logging.info('Sending captcha')
