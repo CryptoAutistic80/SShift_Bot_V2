@@ -109,6 +109,9 @@ class CaptchaView(View):
                     await interaction.channel.send("Verification failed. Please try again.")
                     logging.warning('Verification failed')
                     self.user_input = ""
+                    
+                    # Call regenerate_captcha to refresh the captcha image
+                    await self.regenerate_captcha(interaction)
 
 
     async def delete_last_digit(self, interaction):
@@ -162,8 +165,18 @@ class Captcha(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
-        if interaction.data['custom_id'] == "start_verification":
-            await interaction.response.defer()  # Adding this line to defer the response
+        # Check if 'custom_id' is in interaction.data to prevent KeyError
+        if 'custom_id' in interaction.data and interaction.data['custom_id'] == "start_verification":
+            logging.info(f'Interaction received by user {interaction.user.id}')
+            
+            # Check if the interaction has not been acknowledged yet to prevent HTTPException
+            if not interaction.response.is_done():
+                await interaction.response.defer()  # Adding this line to defer the response
+                logging.info(f'Interaction deferred by user {interaction.user.id}')
+            else:
+                logging.warning(f'Interaction already acknowledged by user {interaction.user.id}')
+                return
+            
             logging.info(f'Start verification initiated by: {interaction.user.id}')
     
             guild_membership = await retrieve_guild_membership(interaction.guild.id)
@@ -178,12 +191,19 @@ class Captcha(commands.Cog):
                 await interaction.followup.send('Verification settings not found.')  # Changed to followup.send
                 return
             
+            # Check if the user already has the verified role
+            verified_role_id = int(verification_settings["verified_role"])  # Casting to int
+            member = interaction.guild.get_member(interaction.user.id)
+            if verified_role_id in [role.id for role in member.roles]:
+                await interaction.followup.send('You are already verified.', ephemeral=True)
+                return
+
             # Create a private thread with the user's display name
             thread = await interaction.channel.create_thread(name=f"Verification-{interaction.user.display_name}", type=nextcord.ChannelType.private_thread)
             
             # Mention the user in the private thread, prompting them to complete the verification
             await thread.send(f"{interaction.user.mention}, please complete the verification process below:")
-    
+        
             # Sending an ephemeral message in the channel inviting the user to the private thread
             await interaction.followup.send(f'Please go to {thread.mention} to complete your verification.', ephemeral=True)
             
