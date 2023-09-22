@@ -1,9 +1,8 @@
 import re
-
 import nextcord
 from nextcord.ext import commands
-
-from database.database_manager import add_verification, retrieve_guild_membership, upsert_reaction, delete_reactions, retrieve_reactions
+from database.database_manager import (add_verification, retrieve_guild_membership, upsert_reaction, delete_reactions, retrieve_reactions,
+                                       upsert_welcome_message, delete_welcome_message, retrieve_welcome_message)
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -91,6 +90,19 @@ class Admin(commands.Cog):
             reactions_cog = self.bot.get_cog("Reactions")
             if reactions_cog:
                 await reactions_cog.load_reactions(specific_guild_id=guild_id)
+
+    @setup.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def welcome(self, inter, channel_id: str, message: str):
+        guild_id = inter.guild.id
+
+        # Add or edit the welcome message
+        response = await upsert_welcome_message(guild_id, channel_id, message)
+        if response:
+            await inter.response.send_message(response)  # This will send the error message back if there's an issue
+        else:
+            await inter.response.send_message("Welcome setup successful.")
+          
           
     @nextcord.slash_command()
     async def reset(self, inter):
@@ -135,8 +147,20 @@ class Admin(commands.Cog):
             await inter.followup.send(response)  # Send database error if there's an issue using follow-up
         else:
             await inter.followup.send("Reaction roles and corresponding roles in Discord have been reset successfully.")  # Send success message using follow-up
+          
+    @reset.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def welcomes(self, inter):
+        guild_id = inter.guild.id
+        
+        # Delete the welcome message for this guild
+        response = await delete_welcome_message(guild_id)
+        
+        if response:
+            await inter.response.send_message(response)  # Send database error if there's an issue
+        else:
+            await inter.response.send_message("Welcome message has been reset successfully.")  # Send success message
+          
 
 def setup(bot):
     bot.add_cog(Admin(bot))
-
-

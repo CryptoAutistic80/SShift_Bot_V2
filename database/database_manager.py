@@ -7,6 +7,8 @@ async def initialize_db():
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
+            
+            # Table for guild memberships
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS guild_memberships (
                     guild_id TEXT PRIMARY KEY NOT NULL,
@@ -15,7 +17,8 @@ async def initialize_db():
                     expiry_date DATETIME
                 );
             """)
-            
+
+            # Table for guild verifications
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS guild_verifications (
                     guild_id TEXT PRIMARY KEY NOT NULL,
@@ -24,7 +27,8 @@ async def initialize_db():
                     FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
                 );
             """)
-            
+
+            # Table for guild role reactions
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS guild_reactions (
                     reaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,10 +40,21 @@ async def initialize_db():
                     FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
                 );
             """)
+
+            # New table for guild welcome messages
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS guild_welcome (
+                    guild_id TEXT PRIMARY KEY NOT NULL,
+                    channel_id TEXT,
+                    message TEXT,
+                    FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
+                );
+            """)
             
             await db.commit()
     except aiosqlite.Error as e:
         print(f"Database error: {e}")
+
 
 
 #####################
@@ -215,5 +230,63 @@ async def delete_reactions(guild_id):
             cursor = await db.cursor()
             await cursor.execute("DELETE FROM guild_reactions WHERE guild_id = ?", (guild_id,))
             await db.commit()
+    except aiosqlite.Error as e:
+        return f"Database error: {e}" 
+
+
+#########################
+# Guild Welcome Message #
+#########################
+
+async def upsert_welcome_message(guild_id, channel_id, message):
+    """
+    Insert or update a welcome message into the database.
+    If an entry with the given guild_id exists, it updates the existing entry.
+    Otherwise, it inserts a new entry.
+    """
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            
+            # Insert or replace the welcome message based on the guild_id
+            await cursor.execute("""
+                INSERT OR REPLACE INTO guild_welcome 
+                (guild_id, channel_id, message) 
+                VALUES (?, ?, ?)
+            """, (guild_id, channel_id, message))
+            
+            await db.commit()
+    except aiosqlite.Error as e:
+        return f"Database error: {e}"
+
+async def retrieve_welcome_message(guild_id):
+    """Retrieve the welcome message settings for a specified guild_id from the database."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT channel_id, message FROM guild_welcome WHERE guild_id = ?", (guild_id,))
+            welcome_details = await cursor.fetchone()
+            if welcome_details:
+                return {
+                    "channel_id": welcome_details[0],
+                    "message": welcome_details[1]
+                }
+            else:
+                return None
+    except aiosqlite.Error as e:
+        return None
+
+async def delete_welcome_message(guild_id):
+    """Remove a welcome message setting from the database based on the guild_id."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("DELETE FROM guild_welcome WHERE guild_id = ?", (guild_id,))
+            changes = db.total_changes
+            await db.commit()
+            if changes > 0:
+                return "Welcome message setting successfully removed from the database"
+            else:
+                return "Welcome message setting not found in the database"
     except aiosqlite.Error as e:
         return f"Database error: {e}"

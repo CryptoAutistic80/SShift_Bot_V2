@@ -68,6 +68,10 @@ class Reactions(commands.Cog):
   
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
+        # Check if the user is the bot itself
+        if payload.user_id == self.client.user.id:
+            return
+    
         if payload.guild_id in self.guild_reactions:
             channel_reactions = self.guild_reactions[payload.guild_id].get(str(payload.channel_id), [])
             for emoji, _, role_id in channel_reactions:
@@ -78,6 +82,7 @@ class Reactions(commands.Cog):
                     if role:
                         await member.add_roles(role)
                         break
+
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
