@@ -4,7 +4,6 @@ import aiosqlite
 db_path = "database/database69.db"
 
 async def initialize_db():
-    """Initialize the database and create tables if they don't exist."""
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
@@ -18,16 +17,30 @@ async def initialize_db():
             """)
             
             await cursor.execute("""
-                CREATE TABLE IF NOT EXISTS guild_settings (
+                CREATE TABLE IF NOT EXISTS guild_verifications (
                     guild_id TEXT PRIMARY KEY NOT NULL,
                     verify_channel TEXT,
                     verified_role TEXT,
                     FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
                 );
             """)
+            
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS guild_reactions (
+                    reaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    guild_id TEXT NOT NULL,
+                    reaction_channel TEXT,
+                    emoji TEXT,
+                    description TEXT,
+                    role_id TEXT,
+                    FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
+                );
+            """)
+            
             await db.commit()
     except aiosqlite.Error as e:
         print(f"Database error: {e}")
+
 
 #####################
 # Guild Memberships #
@@ -122,7 +135,7 @@ async def add_verification(guild_id, verify_channel, verified_role):
             
             # Insert or replace the guild settings based on the guild_id
             await cursor.execute("""
-                INSERT OR REPLACE INTO guild_settings 
+                INSERT OR REPLACE INTO guild_verifications 
                 (guild_id, verify_channel, verified_role) 
                 VALUES (?, ?, ?)
             """, (guild_id, verify_channel, verified_role))
@@ -136,7 +149,7 @@ async def delete_verification(guild_id):
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
-            await cursor.execute("DELETE FROM guild_settings WHERE guild_id = ?", (guild_id,))
+            await cursor.execute("DELETE FROM guild_verifications WHERE guild_id = ?", (guild_id,))
             changes = db.total_changes
             await db.commit()
             if changes > 0:
@@ -151,7 +164,7 @@ async def retrieve_verification(guild_id):
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
-            await cursor.execute("SELECT verify_channel, verified_role FROM guild_settings WHERE guild_id = ?", (guild_id,))
+            await cursor.execute("SELECT verify_channel, verified_role FROM guild_verifications WHERE guild_id = ?", (guild_id,))
             verification_details = await cursor.fetchone()
             if verification_details:
                 return {
@@ -163,3 +176,44 @@ async def retrieve_verification(guild_id):
     except aiosqlite.Error as e:
         return None
 
+########################
+# Guild Role Reactions #
+########################
+
+# Add a reaction entry
+async def upsert_reaction(guild_id, reaction_channel, emoji, description, role_id):
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("""
+                INSERT INTO guild_reactions 
+                (guild_id, reaction_channel, emoji, description, role_id) 
+                VALUES (?, ?, ?, ?, ?)
+            """, (guild_id, reaction_channel, emoji, description, role_id))
+            await db.commit()
+    except aiosqlite.IntegrityError:
+        return "An entry with these parameters already exists."
+    except aiosqlite.Error as e:
+        return f"Database error: {e}"
+
+
+# Retrieve all reactions for a guild
+async def retrieve_reactions(guild_id):
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT reaction_channel, emoji, description, role_id FROM guild_reactions WHERE guild_id = ?", (guild_id,))
+            reactions = await cursor.fetchall()
+            return reactions
+    except aiosqlite.Error as e:
+        return None
+
+# Delete all reactions for a guild
+async def delete_reactions(guild_id):
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("DELETE FROM guild_reactions WHERE guild_id = ?", (guild_id,))
+            await db.commit()
+    except aiosqlite.Error as e:
+        return f"Database error: {e}"
