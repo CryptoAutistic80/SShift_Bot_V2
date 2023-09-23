@@ -163,6 +163,20 @@ class Captcha(commands.Cog):
     async def on_ready(self):
         print("Captcha Ready")
 
+    async def send_verification_prompt(self, _, verify_channel):
+        # Get the verification channel
+        channel = self.bot.get_channel(int(verify_channel))
+        
+        # Send the message with the embed and the button
+        embed = nextcord.Embed(
+            title="Welcome to SShift Bot!", 
+            description="Thank you for using SShift Bot! Please follow the instructions carefully to complete the verification process. We're thrilled to have you here!", 
+            color=0x00ff00
+        )
+        view = nextcord.ui.View()
+        view.add_item(nextcord.ui.Button(label="Start Verification", custom_id="start_verification", style=nextcord.ButtonStyle.primary))
+        await channel.send(embed=embed, view=view)
+
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
         # Check if 'custom_id' is in interaction.data to prevent KeyError
@@ -170,13 +184,16 @@ class Captcha(commands.Cog):
             logging.info(f'Interaction received by user {interaction.user.id}')
             
             # Check if the interaction has not been acknowledged yet to prevent HTTPException
-            if not interaction.response.is_done():
-                await interaction.response.defer()  # Adding this line to defer the response
+            try:
+                await interaction.response.defer()
                 logging.info(f'Interaction deferred by user {interaction.user.id}')
-            else:
-                logging.warning(f'Interaction already acknowledged by user {interaction.user.id}')
+            except nextcord.errors.HTTPException as e:
+                if "Interaction has already been acknowledged" in str(e):
+                    logging.warning(f'Interaction already acknowledged by user {interaction.user.id}')
+                else:
+                    logging.error(f'An unexpected HTTPException occurred: {e}')
                 return
-            
+
             logging.info(f'Start verification initiated by: {interaction.user.id}')
     
             guild_membership = await retrieve_guild_membership(interaction.guild.id)
