@@ -193,7 +193,7 @@ class Captcha(commands.Cog):
                 else:
                     logging.error(f'An unexpected HTTPException occurred: {e}')
                 return
-
+    
             logging.info(f'Start verification initiated by: {interaction.user.id}')
     
             guild_membership = await retrieve_guild_membership(interaction.guild.id)
