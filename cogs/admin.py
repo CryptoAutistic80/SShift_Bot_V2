@@ -107,11 +107,12 @@ class Admin(commands.Cog):
                            channel_id: str, 
                            blockchain: str, 
                            wl_name: str, 
-                           supply: int,  # New supply field
                            wl_description: str, 
                            days_until_expiry: int,  # Expecting number of days until expiry
                            total_wl_spots: int,
                            token_role_1: str, 
+                           supply: Optional[int] = -1,  # New supply field with default -1
+                           mint_sale_date: Optional[str] = "TBA",  # New mint sale date field with default "TBA"
                            token_role_2: Optional[str] = None):
         
         # Validate token_role_1 and token_role_2 to ensure they are integers
@@ -127,7 +128,7 @@ class Admin(commands.Cog):
         guild_id = inter.guild.id
         
         # Step 1: Add the token whitelist entry to the database
-        response = await add_token_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, token_role_1, token_role_2, str_expiry_date, total_wl_spots)
+        response = await add_token_wl(guild_id, channel_id, blockchain, wl_name, wl_description, mint_sale_date, token_role_1, token_role_2, supply, str_expiry_date, total_wl_spots)
             
         # Check if the response indicates an error
         if "error" in response.lower() or "exists" in response.lower():
@@ -136,8 +137,8 @@ class Admin(commands.Cog):
         
         # Step 2: Send success message if everything went well
         await inter.response.send_message("Token whitelist entry added successfully.")
-  
-          
+      
+
     @nextcord.slash_command()
     async def reset(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
@@ -146,6 +147,7 @@ class Admin(commands.Cog):
             return
     
         await inter.response.send_message('Reset command invoked. Use subcommands to perform specific reset operations.')
+
 
     @reset.subcommand()
     @commands.has_permissions(administrator=True)
