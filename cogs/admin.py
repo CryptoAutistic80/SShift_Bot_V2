@@ -1,8 +1,10 @@
 import re
+import time
+from typing import Optional
 import nextcord
 from nextcord.ext import commands
 from database.database_manager import (add_verification, retrieve_guild_membership, upsert_reaction, delete_reactions, retrieve_reactions,
-                                       upsert_welcome_message, delete_welcome_message, retrieve_welcome_message)
+                                       upsert_welcome_message, delete_welcome_message, retrieve_welcome_message, add_token_wl)
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -99,6 +101,42 @@ class Admin(commands.Cog):
         else:
             await inter.response.send_message("Welcome setup successful.")
           
+    @setup.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def add_token_wl(self, inter, 
+                           channel_id: str, 
+                           blockchain: str, 
+                           wl_name: str, 
+                           supply: int,  # New supply field
+                           wl_description: str, 
+                           days_until_expiry: int,  # Expecting number of days until expiry
+                           total_wl_spots: int,
+                           token_role_1: str, 
+                           token_role_2: Optional[str] = None):
+        
+        # Validate token_role_1 and token_role_2 to ensure they are integers
+        if not token_role_1.isdigit() or (token_role_2 and not token_role_2.isdigit()):
+            await inter.response.send_message("Invalid role ID provided. Please provide a valid integer role ID.")
+            return
+        
+        # Calculate Unix timestamp for the expiration date
+        current_time = time.time()
+        expiry_date = int(current_time + days_until_expiry * 24 * 60 * 60)  # Convert days to seconds and add to current time
+        str_expiry_date = str(expiry_date)  # Convert the timestamp to a string for database storage
+        
+        guild_id = inter.guild.id
+        
+        # Step 1: Add the token whitelist entry to the database
+        response = await add_token_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, token_role_1, token_role_2, str_expiry_date, total_wl_spots)
+            
+        # Check if the response indicates an error
+        if "error" in response.lower() or "exists" in response.lower():
+            await inter.response.send_message("Token WL addition unsuccessful.")
+            return
+        
+        # Step 2: Send success message if everything went well
+        await inter.response.send_message("Token whitelist entry added successfully.")
+  
           
     @nextcord.slash_command()
     async def reset(self, inter):
