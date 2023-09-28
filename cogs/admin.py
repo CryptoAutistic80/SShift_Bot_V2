@@ -112,7 +112,7 @@ class Admin(commands.Cog):
                            total_wl_spots: int,
                            token_role_1: str, 
                            supply: Optional[int] = -1,  # New supply field with default -1
-                           mint_sale_date: Optional[str] = "TBA",  # New mint sale date field with default "TBA"
+                           mint_sale_date: Optional[str] = None,  # New mint sale date field with default None
                            token_role_2: Optional[str] = None):
         
         # Validate token_role_1 and token_role_2 to ensure they are integers
@@ -137,8 +137,9 @@ class Admin(commands.Cog):
         
         # Step 2: Send success message if everything went well
         await inter.response.send_message("Token whitelist entry added successfully.")
-      
+          
 
+  
     @nextcord.slash_command()
     async def reset(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
@@ -147,7 +148,6 @@ class Admin(commands.Cog):
             return
     
         await inter.response.send_message('Reset command invoked. Use subcommands to perform specific reset operations.')
-
 
     @reset.subcommand()
     @commands.has_permissions(administrator=True)
