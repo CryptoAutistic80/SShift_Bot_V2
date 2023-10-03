@@ -14,6 +14,7 @@ from database.database_manager import (
     add_verification,
     delete_reactions,
     delete_welcome_message,
+    delete_whitelist_entry,
     retrieve_guild_membership,
     retrieve_reactions,
     retrieve_welcome_message,
@@ -211,7 +212,7 @@ class Admin(commands.Cog):
             days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
             total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
             primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
-            no_mints_primary: int = nextcord.SlashOption(description="Enter the number of mints for primary eligible role"),
+            no_mints_primary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for primary eligible role (optional)"),
             secondary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the secondary eligible role (optional)"),
             no_mints_secondary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for secondary eligible role (optional)"),
             tertiary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the tertiary eligible role (optional)"),
@@ -221,9 +222,15 @@ class Admin(commands.Cog):
     ):
         # Convert channel and role mentions to IDs
         channel_id = str(channel_mention.id)
+        
+        # Use ternary operation to set -1 as default value if left blank
+        no_mints_primary = no_mints_primary if no_mints_primary is not None else -1
+        no_mints_secondary = no_mints_secondary if no_mints_secondary is not None else -1
+        no_mints_tertiary = no_mints_tertiary if no_mints_tertiary is not None else -1
+        
         primary_role_id = f'{str(primary_role.id)}:{no_mints_primary}'
-        secondary_role_id = f'{str(secondary_role.id)}:{no_mints_secondary}' if secondary_role and no_mints_secondary else None
-        tertiary_role_id = f'{str(tertiary_role.id)}:{no_mints_tertiary}' if tertiary_role and no_mints_tertiary else None
+        secondary_role_id = f'{str(secondary_role.id)}:{no_mints_secondary}' if secondary_role else None
+        tertiary_role_id = f'{str(tertiary_role.id)}:{no_mints_tertiary}' if tertiary_role else None
         
         # Calculate Unix timestamp for the expiration date
         current_time = time.time()
@@ -316,7 +323,34 @@ class Admin(commands.Cog):
             await inter.response.send_message(response)  # Send database error if there's an issue
         else:
             await inter.response.send_message("Welcome message has been reset successfully.")  # Send success message
-          
 
+
+    @reset.subcommand(
+        description="Delete a whitelist entry based on type."
+    )
+    @commands.has_permissions(administrator=True)
+    async def delete_whitelist(
+            self, inter,
+            wl_type: str = nextcord.SlashOption(
+                choices={
+                    "NFT": "NFT",
+                    "Token": "TOKEN"
+                },
+                description="Choose the type of whitelist to delete"
+            )
+    ):
+        guild_id = str(inter.guild.id)  # Assuming you want to use the guild ID from the interaction
+        
+        # Call the delete_whitelist_entry function
+        db_response = await delete_whitelist_entry(guild_id, wl_type)
+        
+        # Check for any error message in the response
+        if db_response:
+            await inter.response.send_message(f"An error occurred: {db_response}")
+        else:
+            await inter.response.send_message(f"Successfully deleted all {wl_type} whitelist entries for this guild.")
+
+
+          
 def setup(bot):
     bot.add_cog(Admin(bot))

@@ -10,8 +10,8 @@ async def initialize_db():
           
             #Check if the whitelist table exists and drop it
             #await cursor.execute("""
-               # DROP TABLE IF EXISTS whitelist;
-           # """)
+                #DROP TABLE IF EXISTS whitelist;
+            #""")
             
             # Table for guild memberships
             await cursor.execute("""
@@ -75,7 +75,7 @@ async def initialize_db():
                     expiry_date TEXT,
                     total_wl_spots INTEGER,
                     FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id),
-                    UNIQUE (WL_ID, guild_id, wl_name)
+                    UNIQUE (WL_ID, guild_id, wl_name, type)
                 );
             """)
 
@@ -434,13 +434,15 @@ async def retrieve_all_whitelists_for_guild(guild_id):
         return None
       
 
-async def delete_whitelist_entry(guild_id, wl_name):
-    """Delete a specific whitelist entry based on guild_id and wl_name."""
+async def delete_whitelist_entry(guild_id: str, wl_type: str):
+    """Delete a specific whitelist entry based on guild_id and wl_type."""
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
-            await cursor.execute("DELETE FROM whitelist WHERE guild_id = ? AND wl_name = ?", (guild_id, wl_name))
+            await cursor.execute(
+                "DELETE FROM whitelist WHERE guild_id = ? AND type = ?", 
+                (guild_id, wl_type)
+            )
             await db.commit()
     except aiosqlite.Error as e:
         return f"Database error: {e}"
-
