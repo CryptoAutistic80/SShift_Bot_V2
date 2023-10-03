@@ -377,8 +377,6 @@ async def retrieve_whitelist_entry(guild_id, wl_name):
             await cursor.execute("SELECT * FROM whitelist WHERE guild_id = ? AND wl_name = ?", (guild_id, wl_name))
             entry = await cursor.fetchone()
             if entry:
-                role_mints = [entry[10], entry[11], entry[12]]
-                token_roles = [entry[9], entry[10]]
                 return {
                     "WL_ID": entry[0],
                     "guild_id": entry[1],
@@ -390,15 +388,19 @@ async def retrieve_whitelist_entry(guild_id, wl_name):
                     "mint_sale_date": entry[7],
                     "type": entry[8],
                     "claim_all_roles": entry[9],
-                    "token_roles": token_roles,
-                    "nft_role_mints": role_mints,
-                    "expiry_date": entry[13],
-                    "total_wl_spots": entry[14]
+                    "token_role_1": entry[10],
+                    "token_role_2": entry[11],
+                    "nft_role_mint_1": entry[12],
+                    "nft_role_mint_2": entry[13],
+                    "nft_role_mint_3": entry[14],
+                    "expiry_date": entry[15],
+                    "total_wl_spots": entry[16]
                 }
             else:
                 return None
     except aiosqlite.Error as e:
         return None
+
 
 async def retrieve_all_whitelists_for_guild(guild_id):
     """Fetch all whitelist entries for a specific guild ID."""
@@ -410,8 +412,6 @@ async def retrieve_all_whitelists_for_guild(guild_id):
             if whitelist_entries:
                 results = []
                 for entry in whitelist_entries:
-                    role_mints = [entry[10], entry[11], entry[12]]
-                    token_roles = [entry[9], entry[10]]
                     results.append({
                         "WL_ID": entry[0],
                         "guild_id": entry[1],
@@ -423,10 +423,13 @@ async def retrieve_all_whitelists_for_guild(guild_id):
                         "mint_sale_date": entry[7],
                         "type": entry[8],
                         "claim_all_roles": entry[9],
-                        "token_roles": token_roles,
-                        "nft_role_mints": role_mints,
-                        "expiry_date": entry[13],
-                        "total_wl_spots": entry[14]
+                        "token_role_1": entry[10],
+                        "token_role_2": entry[11],
+                        "nft_role_mint_1": entry[12],
+                        "nft_role_mint_2": entry[13],
+                        "nft_role_mint_3": entry[14],
+                        "expiry_date": entry[15],
+                        "total_wl_spots": entry[16]
                     })
                 return results
             else:
