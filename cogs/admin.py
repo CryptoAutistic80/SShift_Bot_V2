@@ -1,10 +1,38 @@
+import asyncio
+import datetime
 import re
 import time
-from typing import Optional
+from typing import Annotated, Optional
+
 import nextcord
 from nextcord.ext import commands
-from database.database_manager import (add_verification, retrieve_guild_membership, upsert_reaction, delete_reactions, retrieve_reactions,
-                                       upsert_welcome_message, delete_welcome_message, retrieve_welcome_message, add_token_wl)
+from nextcord.ui import Button, View
+
+from database.database_manager import (
+    add_nft_wl,
+    add_token_wl,
+    add_verification,
+    delete_reactions,
+    delete_welcome_message,
+    retrieve_guild_membership,
+    retrieve_reactions,
+    retrieve_welcome_message,
+    upsert_reaction,
+    upsert_welcome_message,
+)
+
+
+
+# Define the blockchain choices at the global level
+BLOCKCHAIN_CHOICES = {
+    "Aptos": "APTOS",
+    "Optimism": "OPTIMISM",
+    "Ethereum": "ETHEREUM",
+    "Binance Smart Chain": "BINANCE SMART CHAIN",
+    "Polygon": "POLYGON",
+    "Solana": "SOLANA"
+}
+
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -100,46 +128,138 @@ class Admin(commands.Cog):
             await inter.response.send_message(response)  # This will send the error message back if there's an issue
         else:
             await inter.response.send_message("Welcome setup successful.")
-          
-    @setup.subcommand()
+
+  
+
+    @setup.subcommand(
+        description=(
+            "Setup a token whitelist"
+        )
+    )
     @commands.has_permissions(administrator=True)
-    async def add_token_wl(self, inter, 
-                           channel_id: str, 
-                           blockchain: str, 
-                           wl_name: str, 
-                           wl_description: str, 
-                           days_until_expiry: int,  # Expecting number of days until expiry
-                           total_wl_spots: int,
-                           token_role_1: str, 
-                           supply: Optional[int] = -1,  # New supply field with default -1
-                           mint_sale_date: Optional[str] = None,  # New mint sale date field with default None
-                           token_role_2: Optional[str] = None):
-        
-        # Validate token_role_1 and token_role_2 to ensure they are integers
-        if not token_role_1.isdigit() or (token_role_2 and not token_role_2.isdigit()):
-            await inter.response.send_message("Invalid role ID provided. Please provide a valid integer role ID.")
-            return
-        
+    async def token_wl(
+            self, inter,
+            channel_mention: nextcord.TextChannel = nextcord.SlashOption(description="Mention the channel to display the whitelist claim"),
+            blockchain: str = nextcord.SlashOption(
+                choices=BLOCKCHAIN_CHOICES,
+                description="Choose the blockchain the token lives on"
+            ),
+            token_name: str = nextcord.SlashOption(description="Enter the name of the token"),
+            description: str = nextcord.SlashOption(description="Provide a detailed description of the token and other relevant details"),
+            days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
+            total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
+            primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
+            secondary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the secondary eligible role (optional)"),
+            total_token_supply: Optional[int] = nextcord.SlashOption(description="Enter the total token supply, default TBA if left blank (optional)"),
+            mint_sale_date: Optional[str] = nextcord.SlashOption(description="Enter the launch date and time in YYYY:MM:DD HH:MM format or leave blank for TBA (optional)")
+    ):
+        # Convert channel and role mentions to IDs
+        channel_id = str(channel_mention.id)
+        primary_role_id = str(primary_role.id)
+        secondary_role_id = str(secondary_role.id) if secondary_role else None
+    
         # Calculate Unix timestamp for the expiration date
         current_time = time.time()
-        expiry_date = int(current_time + days_until_expiry * 24 * 60 * 60)  # Convert days to seconds and add to current time
-        str_expiry_date = str(expiry_date)  # Convert the timestamp to a string for database storage
-        
+        expiry_date = int(current_time + days_available * 24 * 60 * 60)
+        str_expiry_date = str(expiry_date)
+    
         guild_id = inter.guild.id
-        
+    
+        # Convert mint_sale_date to timestamp or set to 'TBA' if blank
+        if mint_sale_date:
+            try:
+                mint_sale_datetime = datetime.datetime.strptime(mint_sale_date, '%Y:%m:%d %H:%M')
+                mint_sale_timestamp = str(int(mint_sale_datetime.timestamp()))
+            except ValueError:
+                await inter.response.send_message("Invalid date format. Please use YYYY:MM:DD HH:MM format.")
+                return
+        else:
+            mint_sale_timestamp = 'TBA'
+    
         # Step 1: Add the token whitelist entry to the database
-        response = await add_token_wl(guild_id, channel_id, blockchain, wl_name, wl_description, mint_sale_date, token_role_1, token_role_2, supply, str_expiry_date, total_wl_spots)
-            
+        response = await add_token_wl(
+            guild_id, channel_id, blockchain, token_name, total_token_supply,
+            description, primary_role_id, secondary_role_id,
+            str_expiry_date, total_wl_spots_available, mint_sale_timestamp
+        )
+    
         # Check if the response indicates an error
         if "error" in response.lower() or "exists" in response.lower():
             await inter.response.send_message("Token WL addition unsuccessful.")
             return
-        
+    
         # Step 2: Send success message if everything went well
         await inter.response.send_message("Token whitelist entry added successfully.")
-          
 
-  
+      
+
+    @setup.subcommand(
+        description=(
+            "Setup a NFT whitelist"
+        )
+    )
+    @commands.has_permissions(administrator=True)
+    async def nft_wl(
+            self, inter,
+            channel_mention: nextcord.TextChannel = nextcord.SlashOption(description="Mention the channel to display the whitelist claim"),
+            blockchain: str = nextcord.SlashOption(
+                choices=BLOCKCHAIN_CHOICES,
+                description="Choose the blockchain the NFT collection lives on"
+            ),
+            wl_name: str = nextcord.SlashOption(description="Enter the name of the NFT collection"),
+            wl_description: str = nextcord.SlashOption(description="Provide a detailed description of the NFT collection and other relevant details"),
+            days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
+            total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
+            primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
+            no_mints_primary: int = nextcord.SlashOption(description="Enter the number of mints for primary eligible role"),
+            secondary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the secondary eligible role (optional)"),
+            no_mints_secondary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for secondary eligible role (optional)"),
+            tertiary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the tertiary eligible role (optional)"),
+            no_mints_tertiary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for tertiary eligible role (optional)"),
+            supply: Optional[int] = nextcord.SlashOption(description="Enter the total supply of NFTs, default TBA if left blank (optional)"),
+            mint_sale_date: Optional[str] = nextcord.SlashOption(description="Enter the launch date and time in YYYY:MM:DD HH:MM format or leave blank for TBA (optional)")
+    ):
+        # Convert channel and role mentions to IDs
+        channel_id = str(channel_mention.id)
+        primary_role_id = f'{str(primary_role.id)}:{no_mints_primary}'
+        secondary_role_id = f'{str(secondary_role.id)}:{no_mints_secondary}' if secondary_role and no_mints_secondary else None
+        tertiary_role_id = f'{str(tertiary_role.id)}:{no_mints_tertiary}' if tertiary_role and no_mints_tertiary else None
+        
+        # Calculate Unix timestamp for the expiration date
+        current_time = time.time()
+        expiry_date = int(current_time + days_available * 24 * 60 * 60)
+        str_expiry_date = str(expiry_date)
+        
+        guild_id = inter.guild.id
+        
+        # Convert mint_sale_date to timestamp or set to 'TBA' if blank
+        if mint_sale_date:
+            try:
+                mint_sale_datetime = datetime.datetime.strptime(mint_sale_date, '%Y:%m:%d %H:%M')
+                mint_sale_timestamp = str(int(mint_sale_datetime.timestamp()))
+            except ValueError:
+                await inter.response.send_message("Invalid date format. Please use YYYY:MM:DD HH:MM format.")
+                return
+        else:
+            mint_sale_timestamp = 'TBA'
+        
+        # Step 1: Add the NFT whitelist entry to the database
+        response = await add_nft_wl(
+            guild_id, channel_id, blockchain, wl_name, supply,
+            wl_description, primary_role_id, secondary_role_id, tertiary_role_id,
+            str_expiry_date, total_wl_spots_available, mint_sale_timestamp
+        )
+        
+        # Check if the response indicates an error
+        if "error" in response.lower() or "exists" in response.lower():
+            await inter.response.send_message("NFT WL addition unsuccessful.")
+            return
+        
+        # Step 2: Send success message if everything went well
+        await inter.response.send_message("NFT whitelist entry added successfully.")
+
+
+
     @nextcord.slash_command()
     async def reset(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
