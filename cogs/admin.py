@@ -211,6 +211,13 @@ class Admin(commands.Cog):
             wl_description: str = nextcord.SlashOption(description="Provide a detailed description of the NFT collection and other relevant details"),
             days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
             total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
+            mints_for_all_roles: str = nextcord.SlashOption(
+                choices={
+                    "Yes": "YES",
+                    "No": "NO"
+                },
+                description="Select if all roles can mint"
+            ),
             primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
             no_mints_primary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for primary eligible role (optional)"),
             secondary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the secondary eligible role (optional)"),
@@ -253,7 +260,7 @@ class Admin(commands.Cog):
         # Step 1: Add the NFT whitelist entry to the database
         response = await add_nft_wl(
             guild_id, channel_id, blockchain, wl_name, supply,
-            wl_description, primary_role_id, secondary_role_id, tertiary_role_id,
+            wl_description, mints_for_all_roles, primary_role_id, secondary_role_id, tertiary_role_id,
             str_expiry_date, total_wl_spots_available, mint_sale_timestamp
         )
         
