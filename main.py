@@ -3,8 +3,8 @@ import logging.handlers
 import os
 
 import nextcord
-import openai
 from nextcord.ext import commands
+import openai
 
 from database.database_manager import initialize_db, add_guild, remove_guild
 from server import start_server
