@@ -27,6 +27,7 @@ from database.database_manager import (
 # Define the blockchain choices at the global level
 BLOCKCHAIN_CHOICES = {
     "Aptos": "APTOS",
+    "Roburna": "ROBURNA",
     "Optimism": "OPTIMISM",
     "Ethereum": "ETHEREUM",
     "Binance Smart Chain": "BINANCE SMART CHAIN",

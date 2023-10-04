@@ -1,11 +1,16 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from threading import Thread
+import os
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 @app.get("/")
 async def root():
-    return {"message": "Server Awake"}
+    return FileResponse("static/index.html")
 
 def run():
     import uvicorn

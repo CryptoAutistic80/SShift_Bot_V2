@@ -101,7 +101,7 @@ class Whitelists(commands.Cog):
 
             # Sending the message, image, and embed
             message_content = f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n{extra_line}"
-            image_path = 'media/NFT_WL_embed.jpg'
+            image_path = 'media/NFT_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
             await channel.send(content=message_content, embed=embed, file=file)
           
@@ -144,7 +144,7 @@ class Whitelists(commands.Cog):
 
             # Sending the message, image, and embed
             message_content = f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!"
-            image_path = 'media/NFT_WL_embed.jpg'
+            image_path = 'media/TOKEN_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
             await channel.send(content=message_content, embed=embed, file=file)
 
