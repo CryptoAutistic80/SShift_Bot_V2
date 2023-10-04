@@ -1,4 +1,5 @@
 import inflect
+import asyncio
 from datetime import datetime
 
 import nextcord
@@ -19,19 +20,39 @@ class Whitelists(commands.Cog):
         print("Whitelists ready")
         await self.get_lists()
 
-  
+    async def delete_existing_bot_messages(self, channel_ids):
+        for channel_id in channel_ids:
+            channel = self.bot.get_channel(int(channel_id))
+            if channel:
+                messages_to_delete = []
+                async for message in channel.history(limit=100):  # Adjust the limit as needed
+                    if message.author == self.bot.user:
+                        messages_to_delete.append(message)
+
+                await channel.delete_messages(messages_to_delete)
+                await asyncio.sleep(1)  # Optional: add a delay to prevent rate limiting
+
     async def get_lists(self):
+        all_channel_ids = set()  # To store unique channel IDs
+
         for guild in self.bot.guilds:
             guild_id = str(guild.id)
             whitelists_data = await retrieve_all_whitelists_for_guild(guild_id)
             if whitelists_data:
                 self.whitelists[guild_id] = whitelists_data
-                self.guild_channel_ids[guild_id] = [entry['channel_id'] for entry in whitelists_data]
-                for entry in whitelists_data:
-                    if entry['type'] == 'NFT':
-                        await self.send_nft_embed(entry)
-                    elif entry['type'] == 'TOKEN':
-                        await self.send_token_embed(entry)
+                channel_ids = [entry['channel_id'] for entry in whitelists_data]
+                all_channel_ids.update(channel_ids)
+                self.guild_channel_ids[guild_id] = channel_ids
+
+        # Delete existing bot messages in all channels
+        await self.delete_existing_bot_messages(all_channel_ids)
+
+        for guild in self.bot.guilds:
+            for entry in self.whitelists[str(guild.id)]:
+                if entry['type'] == 'NFT':
+                    await self.send_nft_embed(entry)
+                elif entry['type'] == 'TOKEN':
+                    await self.send_token_embed(entry)
 
 
     async def send_nft_embed(self, entry):
