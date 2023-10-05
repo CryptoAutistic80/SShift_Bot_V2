@@ -147,7 +147,22 @@ class Whitelists(commands.Cog):
             image_path = 'media/TOKEN_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
             await channel.send(content=message_content, embed=embed, file=file)
+          
 
+    @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
+    async def claim(self, ctx: nextcord.Interaction):
+        # Get the channel IDs for the current guild from self.guild_channel_ids
+        guild_id = str(ctx.guild.id)
+        allowed_channels = self.guild_channel_ids.get(guild_id, [])
+        
+        # Convert to integers if they are not already
+        allowed_channels = [int(ch) for ch in allowed_channels]
+
+        # Check if the command is used in one of the allowed channels
+        if ctx.channel.id in allowed_channels:
+            await ctx.response.send_message("Under development", ephemeral=True)
+        else:
+            await ctx.response.send_message("You can't use this command in this channel.", ephemeral=True)
 
 
 def setup(bot):
