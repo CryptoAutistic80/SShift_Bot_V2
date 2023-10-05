@@ -79,6 +79,20 @@ async def initialize_db():
                     UNIQUE (WL_ID, guild_id, wl_name, type)
                 );
             """)
+          
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS whitelist_claims (
+                    claim_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    WL_ID INTEGER NOT NULL,
+                    guild_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    no_mints INTEGER,
+                    FOREIGN KEY (WL_ID) REFERENCES whitelist(WL_ID),
+                    FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id),
+                    UNIQUE (WL_ID, user_id)
+                );
+            """)
 
 
 
@@ -449,4 +463,49 @@ async def delete_whitelist_entry(guild_id: str, wl_type: str):
             await db.commit()
     except aiosqlite.Error as e:
         return f"Database error: {e}"
+
+
+####################
+# Whitelist claims #
+####################
+
+# Add or update a whitelist claim
+async def upsert_whitelist_claim(WL_ID, guild_id, user_id, address, no_mints):
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.cursor()
+        await cursor.execute("""
+            INSERT OR REPLACE INTO whitelist_claims 
+            (WL_ID, guild_id, user_id, address, no_mints) 
+            VALUES (?, ?, ?, ?, ?)
+        """, (WL_ID, guild_id, user_id, address, no_mints))
+        await db.commit()
+
+# Delete a whitelist claim
+async def delete_whitelist_claim(WL_ID, user_id):
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.cursor()
+        await cursor.execute("""
+            DELETE FROM whitelist_claims WHERE WL_ID = ? AND user_id = ?
+        """, (WL_ID, user_id))
+        await db.commit()
+
+# Retrieve a whitelist claim
+async def retrieve_whitelist_claim(WL_ID, user_id):
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.cursor()
+        await cursor.execute("""
+            SELECT * FROM whitelist_claims WHERE WL_ID = ? AND user_id = ?
+        """, (WL_ID, user_id))
+        claim_details = await cursor.fetchone()
+        if claim_details:
+            return {
+                "claim_id": claim_details[0],
+                "WL_ID": claim_details[1],
+                "guild_id": claim_details[2],
+                "user_id": claim_details[3],
+                "address": claim_details[4],
+                "no_mints": claim_details[5]
+            }
+        return None
+
 
