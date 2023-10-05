@@ -48,11 +48,13 @@ class Whitelists(commands.Cog):
         await self.delete_existing_bot_messages(all_channel_ids)
 
         for guild in self.bot.guilds:
-            for entry in self.whitelists[str(guild.id)]:
-                if entry['type'] == 'NFT':
-                    await self.send_nft_embed(entry)
-                elif entry['type'] == 'TOKEN':
-                    await self.send_token_embed(entry)
+            guild_id_str = str(guild.id)
+            if guild_id_str in self.whitelists:  # Check if the guild_id exists in the self.whitelists dictionary
+                for entry in self.whitelists[guild_id_str]:
+                    if entry['type'] == 'NFT':
+                        await self.send_nft_embed(entry)
+                    elif entry['type'] == 'TOKEN':
+                        await self.send_token_embed(entry)
 
 
     async def send_nft_embed(self, entry):
@@ -151,7 +153,17 @@ class Whitelists(commands.Cog):
 
     @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
     async def claim(self, ctx: nextcord.Interaction):
-        # Get the channel IDs for the current guild from self.guild_channel_ids
+        # Check if the command is used in a guild (not in a DM)
+        if ctx.guild is None:
+            await ctx.response.send_message("This command can't be used in DMs.", ephemeral=True)
+            return
+
+        # Check if ctx.channel is None
+        if ctx.channel is None:
+            await ctx.response.send_message("Unable to determine the channel.", ephemeral=True)
+            return
+
+        # Now it's safe to access ctx.guild.id and ctx.channel.id
         guild_id = str(ctx.guild.id)
         allowed_channels = self.guild_channel_ids.get(guild_id, [])
         
