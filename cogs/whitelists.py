@@ -5,7 +5,18 @@ from datetime import datetime
 import nextcord
 from nextcord.ext import commands
 
-from database.database_manager import retrieve_all_whitelists_for_guild
+from database.database_manager import retrieve_all_whitelists_for_guild, upsert_whitelist_claim
+
+
+class ClaimButton(nextcord.ui.Button):
+    def __init__(self, entry, bot):
+        super().__init__(style=nextcord.ButtonStyle.green, label="Claim")
+        self.entry = entry
+        self.bot = bot
+
+    async def callback(self, interaction: nextcord.Interaction):
+        # You can now access self.entry['WL_ID'] and self.bot within this method
+        await interaction.response.send_message(f"Under development, hang tight... (WL_ID: {self.entry['WL_ID']})", ephemeral=True)
 
 
 class Whitelists(commands.Cog):
@@ -101,12 +112,13 @@ class Whitelists(commands.Cog):
                 color=nextcord.Color.yellow()
             )
 
-            # Sending the message, image, and embed
+            # Sending the message, image, embed, and the claim button
             message_content = f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n{extra_line}"
             image_path = 'media/NFT_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            await channel.send(content=message_content, embed=embed, file=file)
-          
+            view = nextcord.ui.View()
+            view.add_item(ClaimButton(entry=entry, bot=self.bot))
+            await channel.send(content=message_content, embed=embed, file=file, view=view)
 
     async def send_token_embed(self, entry):
         channel_id = int(entry['channel_id'])
@@ -144,38 +156,14 @@ class Whitelists(commands.Cog):
                 color=nextcord.Color.blue()  # Changed color to blue for differentiation
             )
 
-            # Sending the message, image, and embed
+            # Sending the message, image, embed, and the claim button
             message_content = f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!"
             image_path = 'media/TOKEN_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            await channel.send(content=message_content, embed=embed, file=file)
+            view = nextcord.ui.View()
+            view.add_item(ClaimButton(entry=entry, bot=self.bot))
+            await channel.send(content=message_content, embed=embed, file=file, view=view)
           
-
-    @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
-    async def claim(self, ctx: nextcord.Interaction):
-        # Check if the command is used in a guild (not in a DM)
-        if ctx.guild is None:
-            await ctx.response.send_message("This command can't be used in DMs.", ephemeral=True)
-            return
-
-        # Check if ctx.channel is None
-        if ctx.channel is None:
-            await ctx.response.send_message("Unable to determine the channel.", ephemeral=True)
-            return
-
-        # Now it's safe to access ctx.guild.id and ctx.channel.id
-        guild_id = str(ctx.guild.id)
-        allowed_channels = self.guild_channel_ids.get(guild_id, [])
-        
-        # Convert to integers if they are not already
-        allowed_channels = [int(ch) for ch in allowed_channels]
-
-        # Check if the command is used in one of the allowed channels
-        if ctx.channel.id in allowed_channels:
-            await ctx.response.send_message("Under development", ephemeral=True)
-        else:
-            await ctx.response.send_message("You can't use this command in this channel.", ephemeral=True)
-
 
 def setup(bot):
     bot.add_cog(Whitelists(bot))
