@@ -8,26 +8,18 @@ from nextcord.ext import commands
 from database.database_manager import retrieve_all_whitelists_for_guild, upsert_whitelist_claim
 
 
+
 class Whitelists(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.whitelists = {}  # To store the whitelists data
         self.guild_channel_ids = {}  # To store the channel IDs
         self.p = inflect.engine()  # For ordinal day formatting
-        self.message_ids = {}  # To store message IDs
 
     @commands.Cog.listener()
     async def on_ready(self):
         print("Whitelists ready")
         await self.get_lists()
-
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        if user != self.bot.user and str(reaction.emoji) == '🐸':
-            message_id = reaction.message.id
-            if message_id in self.message_ids:
-                wl_id, expiry_date = self.message_ids[message_id]
-                await reaction.message.channel.send(f'Under development (WL_ID: {wl_id}, Expiry Date: {expiry_date})')
 
     async def delete_existing_bot_messages(self, channel_ids):
         for channel_id in channel_ids:
@@ -39,7 +31,7 @@ class Whitelists(commands.Cog):
                         messages_to_delete.append(message)
 
                 await channel.delete_messages(messages_to_delete)
-                await asyncio.sleep(1)
+                await asyncio.sleep(1)  # Optional: add a delay to prevent rate limiting
 
     async def get_lists(self):
         all_channel_ids = set()  # To store unique channel IDs
@@ -102,7 +94,6 @@ class Whitelists(commands.Cog):
                 f"Mint Date:                 {formatted_date}\n"
                 f"```"
                 f" \n"
-                f"React to the 🐸 to submit your wallet and lock in your spot 🔥🔥"
             )
             embed = nextcord.Embed(
                 title=title,
@@ -110,13 +101,18 @@ class Whitelists(commands.Cog):
                 color=nextcord.Color.yellow()
             )
 
-            # Sending the message, image, embed, and the claim button
-            message_content = f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n{extra_line}"
+            # Sending the message, image, embed without the view and button
+            message_content = (
+                f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
+                f"{extra_line}\n\n"
+                f"Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🔥🐸🔥"
+            )
             image_path = 'media/NFT_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            message = await channel.send(content=message_content, embed=embed, file=file)
-            self.message_ids[message.id] = (entry['WL_ID'], entry['expiry_date'])
-            await message.add_reaction('🐸')
+            await channel.send(content=message_content, embed=embed, file=file)
+
+
 
     async def send_token_embed(self, entry):
         channel_id = int(entry['channel_id'])
@@ -146,7 +142,6 @@ class Whitelists(commands.Cog):
                 f"Launch Date:               {formatted_date}\n"
                 f"```"
                 f" \n"
-                f"React to the 🐸 to submit your wallet and lock in your spot 🔥🔥"
             )
             embed = nextcord.Embed(
                 title=title,
@@ -154,14 +149,15 @@ class Whitelists(commands.Cog):
                 color=nextcord.Color.blue()  # Changed color to blue for differentiation
             )
 
-            # Sending the message, image, embed, and the claim button
-            message_content = f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\nYou have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!"
+            # Sending the message, image, embed without the view and button
+            message_content = (
+                f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
+                f"Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🔥🐸🔥"
+            )
             image_path = 'media/TOKEN_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            message = await channel.send(content=message_content, embed=embed, file=file)
-            self.message_ids[message.id] = (entry['WL_ID'], entry['expiry_date'])
-            await message.add_reaction('🐸')
-
+            await channel.send(content=message_content, embed=embed, file=file)
           
 
 def setup(bot):
