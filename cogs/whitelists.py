@@ -1,11 +1,12 @@
 import inflect
 import asyncio
 from datetime import datetime
+from typing import List
 
 import nextcord
 from nextcord.ext import commands
 
-from database.database_manager import retrieve_all_whitelists_for_guild, upsert_whitelist_claim
+from database.database_manager import retrieve_all_whitelists_for_guild, retrieve_whitelist_entry_by_id, upsert_whitelist_claim
 
 
 
@@ -104,9 +105,9 @@ class Whitelists(commands.Cog):
             # Sending the message, image, embed without the view and button
             message_content = (
                 f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
                 f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
                 f"{extra_line}\n\n"
-                f"Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🔥🐸🔥"
             )
             image_path = 'media/NFT_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
@@ -152,13 +153,100 @@ class Whitelists(commands.Cog):
             # Sending the message, image, embed without the view and button
             message_content = (
                 f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
                 f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
-                f"Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🔥🐸🔥"
             )
             image_path = 'media/TOKEN_WL_embed.webp'
             file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
             await channel.send(content=message_content, embed=embed, file=file)
           
+
+    @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
+    async def claim(
+        self, 
+        interaction: nextcord.Interaction, 
+        whitelist_id: str, 
+        wallet_address: str
+    ):
+        # Check if the command is invoked within a guild
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return
+    
+        # Get the channel IDs for the current guild from self.guild_channel_ids
+        guild_id = str(interaction.guild.id)
+        allowed_channels = self.guild_channel_ids.get(guild_id, [])
+        
+        # Convert to integers if they are not already
+        allowed_channels = [int(ch) for ch in allowed_channels]
+    
+        # Check if the command is used in one of the allowed channels
+        if interaction.channel and interaction.channel.id in allowed_channels:
+            # Step 0: Retrieve the WL_ID from the database
+            whitelist_data = await retrieve_whitelist_entry_by_id(guild_id, whitelist_id)
+            if not whitelist_data:
+                await interaction.response.send_message("Invalid whitelist ID.", ephemeral=True)
+                return
+    
+            # Step 1: Check if the current timestamp is greater than expiry_date
+            current_timestamp = int(datetime.utcnow().timestamp())
+            if current_timestamp > int(whitelist_data['expiry_date']):
+                await interaction.response.send_message("This whitelist has expired.", ephemeral=True)
+                return
+    
+            # Ensure interaction.user and interaction.guild are not None
+            if interaction.user and interaction.guild:
+                member = await interaction.guild.fetch_member(interaction.user.id)
+            else:
+                await interaction.response.send_message("Unable to fetch user or guild information.", ephemeral=True)
+                return
+            
+            # Step 2: Check if the user has any of the eligible roles
+            wl_type = whitelist_data["type"]
+            eligible_roles = []
+            if wl_type == "NFT":
+                eligible_roles = [whitelist_data[f'nft_role_mint_{i}'].split(':')[0] for i in range(1, 4) if whitelist_data.get(f'nft_role_mint_{i}')]
+            elif wl_type == "TOKEN":
+                eligible_roles = [whitelist_data[f'token_role_{i}'] for i in range(1, 3) if whitelist_data.get(f'token_role_{i}')]
+    
+            user_roles = [str(role.id) for role in member.roles if str(role.id) in eligible_roles]
+            if not user_roles:
+                await interaction.response.send_message("You do not have the required role(s) to claim this whitelist.", ephemeral=True)
+                return
+    
+            # Step 2.5: Check if type is NFT or Token
+            no_mints = -1  # Default for Token type
+            if wl_type == "NFT":
+                # Step 3: Check if the the WL field claim_all_roles is YES or NO
+                claim_all_roles = whitelist_data['claim_all_roles'] == 'YES'
+                
+                # Step 4: Calculate the number of mints the user can claim
+                if claim_all_roles:
+                    no_mints = sum([int(whitelist_data[f'nft_role_mint_{eligible_roles.index(role) + 1}'].split(':')[1]) for role in user_roles if int(whitelist_data[f'nft_role_mint_{eligible_roles.index(role) + 1}'].split(':')[1]) != -1])
+                else:
+                    primary_role = user_roles[0]
+                    no_mints = int(whitelist_data[f'nft_role_mint_{eligible_roles.index(primary_role) + 1}'].split(':')[1])
+    
+            # Step 5: Use the database function to record the claim in the database
+            user_roles_str = ":".join(user_roles)
+            await upsert_whitelist_claim(
+                whitelist_data['WL_ID'],
+                guild_id,
+                str(interaction.user.id),
+                user_roles_str,
+                wallet_address,
+                no_mints
+            )
+    
+            # Step 7: Send an ephemeral confirmation message detailing the WL_Name claimed, the address and if it’s an NFT whitelist also the number of mints allowed.
+            mints_msg = f" with {no_mints} mints" if wl_type == "NFT" else ""
+            await interaction.response.send_message(
+                f"You have successfully claimed your spot in **{whitelist_data['wl_name']}** whitelist at address {wallet_address}{mints_msg}.",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message("You can't use this command in this channel.", ephemeral=True)
+
 
 def setup(bot):
     bot.add_cog(Whitelists(bot))

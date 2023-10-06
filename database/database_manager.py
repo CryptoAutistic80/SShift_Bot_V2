@@ -8,9 +8,9 @@ async def initialize_db():
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
           
-            #Check if the whitelist table exists and drop it
+            #Check if the whitelist_claims table exists and drop it
             #await cursor.execute("""
-                #DROP TABLE IF EXISTS whitelist;
+                #DROP TABLE IF EXISTS whitelist_claims;
             #""")
             
             # Table for guild memberships
@@ -86,6 +86,7 @@ async def initialize_db():
                     WL_ID INTEGER NOT NULL,
                     guild_id TEXT NOT NULL,
                     user_id TEXT NOT NULL,
+                    user_roles TEXT NOT NULL,
                     address TEXT NOT NULL,
                     no_mints INTEGER,
                     FOREIGN KEY (WL_ID) REFERENCES whitelist(WL_ID),
@@ -383,12 +384,15 @@ async def add_nft_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_descr
     except aiosqlite.Error as e:
         return f"Database error: {e}"
 
-async def retrieve_whitelist_entry(guild_id, wl_name):
-    """Fetch a specific whitelist entry based on guild_id and wl_name."""
+async def retrieve_whitelist_entry_by_id(guild_id, WL_ID):
+    """Fetch a specific whitelist entry based on guild_id and WL_ID."""
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
-            await cursor.execute("SELECT * FROM whitelist WHERE guild_id = ? AND wl_name = ?", (guild_id, wl_name))
+            await cursor.execute(
+                "SELECT * FROM whitelist WHERE guild_id = ? AND WL_ID = ?",
+                (guild_id, WL_ID)
+            )
             entry = await cursor.fetchone()
             if entry:
                 return {
@@ -413,6 +417,7 @@ async def retrieve_whitelist_entry(guild_id, wl_name):
             else:
                 return None
     except aiosqlite.Error as e:
+        print(f"Database error: {e}")
         return None
 
 
@@ -470,14 +475,14 @@ async def delete_whitelist_entry(guild_id: str, wl_type: str):
 ####################
 
 # Add or update a whitelist claim
-async def upsert_whitelist_claim(WL_ID, guild_id, user_id, address, no_mints):
+async def upsert_whitelist_claim(WL_ID, guild_id, user_id, user_roles, address, no_mints):
     async with aiosqlite.connect(db_path) as db:
         cursor = await db.cursor()
         await cursor.execute("""
             INSERT OR REPLACE INTO whitelist_claims 
-            (WL_ID, guild_id, user_id, address, no_mints) 
-            VALUES (?, ?, ?, ?, ?)
-        """, (WL_ID, guild_id, user_id, address, no_mints))
+            (WL_ID, guild_id, user_id, user_roles, address, no_mints) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (WL_ID, guild_id, user_id, user_roles, address, no_mints))
         await db.commit()
 
 # Delete a whitelist claim
@@ -503,9 +508,8 @@ async def retrieve_whitelist_claim(WL_ID, user_id):
                 "WL_ID": claim_details[1],
                 "guild_id": claim_details[2],
                 "user_id": claim_details[3],
-                "address": claim_details[4],
-                "no_mints": claim_details[5]
+                "user_roles": claim_details[4],  # Updated to reflect new schema
+                "address": claim_details[5],
+                "no_mints": claim_details[6]  # Updated index due to new column
             }
         return None
-
-
