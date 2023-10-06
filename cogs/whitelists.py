@@ -241,9 +241,11 @@ class Whitelists(commands.Cog):
             # Step 7: Send an ephemeral confirmation message detailing the WL_Name claimed, the address and if it’s an NFT whitelist also the number of mints allowed.
             mints_msg = f" with {no_mints} mints" if wl_type == "NFT" else ""
             await interaction.response.send_message(
-                f"You have successfully claimed your spot in **{whitelist_data['wl_name']}** whitelist at address {wallet_address}{mints_msg}.",
+                f"You have successfully claimed your spot in\n"
+                f"**{whitelist_data['wl_name']}** whitelist with address:\n {wallet_address}{mints_msg}",
                 ephemeral=True
             )
+
         else:
             await interaction.response.send_message("You can't use this command in this channel.", ephemeral=True)
 
