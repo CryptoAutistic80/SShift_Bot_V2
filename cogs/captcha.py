@@ -162,70 +162,58 @@ class Captcha(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Captcha Ready")
+        # Initialization moved to a separate function
 
-    async def send_verification_prompt(self, _, verify_channel):
-        # Get the verification channel
+    async def initialize_verification(self, guild_id):
+        verification_settings = await retrieve_verification(guild_id)
+        if verification_settings:
+            verify_channel = verification_settings["verify_channel"]
+            await self.send_verification_prompt(verify_channel)
+
+    async def send_verification_prompt(self, verify_channel):
         channel = self.bot.get_channel(int(verify_channel))
-        
-        # Send the message with the embed and the button
         embed = nextcord.Embed(
-            title="Welcome to SShift Bot!", 
-            description="Thank you for using SShift Bot! Please follow the instructions carefully to complete the verification process. We're thrilled to have you here!", 
+            title=" ",
+            description=f"Thank you for using SShift Bot!\n\n To start the verification process, please type **/verify**.\n\n  ",
             color=0x00ff00
         )
-        view = nextcord.ui.View()
-        view.add_item(nextcord.ui.Button(label="Start Verification", custom_id="start_verification", style=nextcord.ButtonStyle.primary))
-        await channel.send(embed=embed, view=view)
-
-    @commands.Cog.listener()
-    async def on_interaction(self, interaction):
-        # Check if 'custom_id' is in interaction.data to prevent KeyError
-        if 'custom_id' in interaction.data and interaction.data['custom_id'] == "start_verification":
-            logging.info(f'Interaction received by user {interaction.user.id}')
-            
-            # Check if the interaction has not been acknowledged yet to prevent HTTPException
-            try:
-                await interaction.response.defer()
-                logging.info(f'Interaction deferred by user {interaction.user.id}')
-            except nextcord.errors.HTTPException as e:
-                if "Interaction has already been acknowledged" in str(e):
-                    logging.warning(f'Interaction already acknowledged by user {interaction.user.id}')
-                else:
-                    logging.error(f'An unexpected HTTPException occurred: {e}')
-                return
     
-            logging.info(f'Start verification initiated by: {interaction.user.id}')
+        # Create a File object for the shield image
+        file = nextcord.File("media/shield.png", filename="shield.png")
     
-            guild_membership = await retrieve_guild_membership(interaction.guild.id)
-            if guild_membership is None:
-                logging.warning('Guild does not have a membership entry, setup cannot proceed.')
-                await interaction.followup.send('Guild does not have a membership entry, setup cannot proceed.')  # Changed to followup.send
-                return
-    
-            verification_settings = await retrieve_verification(interaction.guild.id)
-            if verification_settings is None:
-                logging.warning('Verification settings not found')
-                await interaction.followup.send('Verification settings not found.')  # Changed to followup.send
-                return
-            
-            # Check if the user already has the verified role
-            verified_role_id = int(verification_settings["verified_role"])  # Casting to int
-            member = interaction.guild.get_member(interaction.user.id)
-            if verified_role_id in [role.id for role in member.roles]:
-                await interaction.followup.send('You are already verified.', ephemeral=True)
-                return
-
-            # Create a private thread with the user's display name
-            thread = await interaction.channel.create_thread(name=f"Verification-{interaction.user.display_name}", type=nextcord.ChannelType.private_thread)
-            
-            # Mention the user in the private thread, prompting them to complete the verification
-            await thread.send(f"{interaction.user.mention}, please complete the verification process below:")
+        # Set the shield image as the main image in the embed
+        embed.set_image(url="attachment://shield.png")
         
-            # Sending an ephemeral message in the channel inviting the user to the private thread
-            await interaction.followup.send(f'Please go to {thread.mention} to complete your verification.', ephemeral=True)
-            
-            # Call send_captcha with the thread as an additional argument
-            await self.send_captcha(interaction.user, thread)
+        await channel.send(file=file, embed=embed)
+
+
+    @nextcord.slash_command()
+    async def verify(self, inter):
+        logging.info(f'Verification initiated by: {inter.user.id}')
+    
+        verification_settings = await retrieve_verification(inter.guild.id)
+        if verification_settings is None:
+            logging.warning('Verification settings not found')
+            await inter.response.send_message('Verification settings not found.')
+            return
+        
+        # Check if the user already has the verified role
+        verified_role_id = int(verification_settings["verified_role"])
+        member = inter.guild.get_member(inter.user.id)
+        if verified_role_id in [role.id for role in member.roles]:
+            await inter.response.send_message('You are already verified.', ephemeral=True)
+            return
+    
+        # Create a private thread with the user's display name
+        thread = await inter.channel.create_thread(name=f"Verification-{inter.user.display_name}", type=nextcord.ChannelType.private_thread)
+        
+        # Mention the user in the private thread, prompting them to complete the verification
+        await thread.send(f"{inter.user.mention}, please complete the verification process below:")
+        
+        # Call send_captcha with the thread as an additional argument
+        captcha_cog = self.bot.get_cog("Captcha")
+        if captcha_cog:
+            await captcha_cog.send_captcha(inter.user, thread)
 
 
     async def send_captcha(self, member, thread):

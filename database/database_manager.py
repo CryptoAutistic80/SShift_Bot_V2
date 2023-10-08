@@ -513,3 +513,30 @@ async def retrieve_whitelist_claim(WL_ID, user_id):
                 "no_mints": claim_details[6]  # Updated index due to new column
             }
         return None
+
+# Retrieve all whitelist claims for specfic user
+async def retrieve_all_claims_for_user(user_id):
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.cursor()
+        await cursor.execute("""
+            SELECT * FROM whitelist_claims WHERE user_id = ?
+        """, (user_id,))
+        
+        claim_details_list = await cursor.fetchall()
+        if not claim_details_list:
+            return None
+
+        claims = []
+        for claim_details in claim_details_list:
+            claim_dict = {
+                "claim_id": claim_details[0],
+                "WL_ID": claim_details[1],
+                "guild_id": claim_details[2],
+                "user_id": claim_details[3],
+                "user_roles": claim_details[4],
+                "address": claim_details[5],
+                "no_mints": claim_details[6]
+            }
+            claims.append(claim_dict)
+
+        return claims

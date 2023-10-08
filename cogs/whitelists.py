@@ -6,7 +6,7 @@ from typing import List
 import nextcord
 from nextcord.ext import commands
 
-from database.database_manager import retrieve_all_whitelists_for_guild, retrieve_whitelist_entry_by_id, upsert_whitelist_claim
+from database.database_manager import retrieve_all_whitelists_for_guild, retrieve_whitelist_entry_by_id, retrieve_all_claims_for_user, upsert_whitelist_claim
 
 
 
