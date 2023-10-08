@@ -164,17 +164,30 @@ class Captcha(commands.Cog):
         print("Captcha Ready")
         # Initialization moved to a separate function
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot:  # Ignore messages from bots
+            return
+    
+        if message.guild:  # Check if the message is in a guild and not a DM
+            verification_settings = await retrieve_verification(message.guild.id)
+            if verification_settings:
+                verify_channel_id = int(verification_settings["verify_channel"])
+                if message.channel.id == verify_channel_id and message.content != "/verify":
+                    await message.delete()
+
+
     async def initialize_verification(self, guild_id):
         verification_settings = await retrieve_verification(guild_id)
         if verification_settings:
-            verify_channel = verification_settings["verify_channel"]
-            await self.send_verification_prompt(verify_channel)
+            self.verify_channel_id = int(verification_settings["verify_channel"])  # Store the channel ID
+            await self.send_verification_prompt(self.verify_channel_id)
 
     async def send_verification_prompt(self, verify_channel):
         channel = self.bot.get_channel(int(verify_channel))
         embed = nextcord.Embed(
             title=" ",
-            description=f"Thank you for using SShift Bot!\n\n To start the verification process, please type **/verify**.\n\n  ",
+            description="**Thank you for using SShift Bot!**\n\nTo start the verification process, please type\n**/verify**.",
             color=0x00ff00
         )
     

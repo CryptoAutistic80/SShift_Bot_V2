@@ -50,18 +50,27 @@ class Reactions(commands.Cog):
                             description="\u200b",  
                             color=0x3498db
                         )
+                        # Set the live URL as the thumbnail
+                        gif_url = "https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif"
+                        embed.set_thumbnail(url=gif_url)
     
                         for emoji, desc, role_id in role_data:
                             role = guild.get_role(int(role_id))
                             if role:
-                                embed.add_field(name=f"{emoji} - @{role.name} - {desc}", value="\u200b", inline=False)  # Displaying in one line
+                                embed.add_field(name=f"{emoji} - @{role.name} - {desc}", value="\u200b", inline=False)
     
                         if existing_message:
                             await existing_message.edit(embed=embed)
-                            msg = existing_message
+                            msg = existing_message  # This line ensures that msg is defined
                         else:
+                            # Send the image as a separate attachment
+                            file = nextcord.File("media/reactions2.png", filename="reactions2.png")
+                            await channel.send(file=file)
+                            
+                            # Send the embed message and define msg here
                             msg = await channel.send(embed=embed)
     
+                        # Add reactions to the embed message
                         for emoji, _, _ in role_data:
                             await msg.add_reaction(emoji)
 
