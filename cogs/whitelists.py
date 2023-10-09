@@ -205,6 +205,9 @@ class Whitelists(commands.Cog):
         
         # Convert to integers if they are not already
         allowed_channels = [int(ch) for ch in allowed_channels]
+
+        print(f"Allowed channels: {allowed_channels}")  # Debugging line
+        print(f"Interaction channel ID: {interaction.channel.id}")  # Debugging line
     
         # Check if the command is used in one of the allowed channels
         if interaction.channel and interaction.channel.id in allowed_channels:

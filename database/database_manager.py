@@ -9,14 +9,14 @@ async def initialize_db():
             cursor = await db.cursor()
           
             #Check if the whitelist_claims table exists and drop it
-            await cursor.execute("""
-                DROP TABLE IF EXISTS whitelist_claims;
-            """)
+            #await cursor.execute("""
+                #DROP TABLE IF EXISTS whitelist_claims;
+            #""")
           
             #Check if the whitelist table exists and drop it
-            await cursor.execute("""
-                DROP TABLE IF EXISTS whitelist;
-            """)
+            #await cursor.execute("""
+                #DROP TABLE IF EXISTS whitelist;
+            #""")
             
             # Table for guild memberships
             await cursor.execute("""
