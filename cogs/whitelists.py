@@ -1,3 +1,4 @@
+import os
 import inflect
 import asyncio
 from datetime import datetime
@@ -112,8 +113,9 @@ class Whitelists(commands.Cog):
                     f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
                     f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
                 )
-                image_path = 'media/TOKEN_WL_embed.webp'
-                file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
+                image_path = entry['WL_image']
+                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
+                file = nextcord.File(image_path, filename=f'TOKEN_WL_embed{file_extension}')
                 await channel.send(content=message_content, embed=embed, file=file)
 
 
@@ -174,13 +176,14 @@ class Whitelists(commands.Cog):
     
                 # Sending the message, image, embed without the view and button
                 message_content = (
-                    f"**A NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                    f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
                     f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
                     f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
                     f"{extra_line}\n\n"
                 )
-                image_path = 'media/NFT_WL_embed.webp'
-                file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
+                image_path = entry['WL_image']
+                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
+                file = nextcord.File(image_path, filename=f'NFT_WL_embed{file_extension}')
                 await channel.send(content=message_content, embed=embed, file=file)
 
 

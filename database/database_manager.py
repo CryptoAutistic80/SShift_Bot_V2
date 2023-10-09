@@ -9,9 +9,14 @@ async def initialize_db():
             cursor = await db.cursor()
           
             #Check if the whitelist_claims table exists and drop it
-            #await cursor.execute("""
-                #DROP TABLE IF EXISTS whitelist_claims;
-            #""")
+            await cursor.execute("""
+                DROP TABLE IF EXISTS whitelist_claims;
+            """)
+          
+            #Check if the whitelist table exists and drop it
+            await cursor.execute("""
+                DROP TABLE IF EXISTS whitelist;
+            """)
             
             # Table for guild memberships
             await cursor.execute("""
@@ -75,6 +80,7 @@ async def initialize_db():
                     nft_role_mint_3 TEXT DEFAULT NULL,
                     expiry_date TEXT,
                     total_wl_spots INTEGER,
+                    WL_image TEXT,  -- New column
                     FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id),
                     UNIQUE (WL_ID, guild_id, wl_name, type)
                 );
@@ -342,7 +348,7 @@ async def delete_welcome_message(guild_id):
 # Guild Whitelist #
 ###################
 
-async def add_token_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, token_role_1, token_role_2=None, expiry_date=None, total_wl_spots=None, mint_sale_date='TBA'):
+async def add_token_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, token_role_1, token_role_2=None, expiry_date=None, total_wl_spots=None, mint_sale_date='TBA', WL_image=None):
     """Insert a new token whitelist entry into the database."""
     try:
         async with aiosqlite.connect(db_path) as db:
@@ -355,15 +361,15 @@ async def add_token_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_des
             
             await cursor.execute("""
                 INSERT INTO whitelist 
-                (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, type, token_role_1, token_role_2, expiry_date, total_wl_spots) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'TOKEN', ?, ?, ?, ?)
-            """, (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, token_role_1, token_role_2, expiry_date, total_wl_spots))
+                (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, type, token_role_1, token_role_2, expiry_date, total_wl_spots, WL_image) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'TOKEN', ?, ?, ?, ?, ?)
+            """, (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, token_role_1, token_role_2, expiry_date, total_wl_spots, WL_image))
             await db.commit()
             return "Token whitelist entry added successfully."
     except aiosqlite.Error as e:
         return f"Database error: {e}"
 
-async def add_nft_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, claim_all_roles, nft_role_mint_1, nft_role_mint_2=None, nft_role_mint_3=None, expiry_date=None, total_wl_spots=None, mint_sale_date='TBA'):
+async def add_nft_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_description, claim_all_roles, nft_role_mint_1, nft_role_mint_2=None, nft_role_mint_3=None, expiry_date=None, total_wl_spots=None, mint_sale_date='TBA', WL_image=None):
     """Insert a new NFT whitelist entry into the database."""
     try:
         async with aiosqlite.connect(db_path) as db:
@@ -376,9 +382,9 @@ async def add_nft_wl(guild_id, channel_id, blockchain, wl_name, supply, wl_descr
             
             await cursor.execute("""
                 INSERT INTO whitelist 
-                (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, type, claim_all_roles, nft_role_mint_1, nft_role_mint_2, nft_role_mint_3, expiry_date, total_wl_spots) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'NFT', ?, ?, ?, ?, ?, ?)
-            """, (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, claim_all_roles, nft_role_mint_1, nft_role_mint_2, nft_role_mint_3, expiry_date, total_wl_spots))
+                (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, type, claim_all_roles, nft_role_mint_1, nft_role_mint_2, nft_role_mint_3, expiry_date, total_wl_spots, WL_image) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'NFT', ?, ?, ?, ?, ?, ?, ?)
+            """, (guild_id, channel_id, blockchain, wl_name, supply, wl_description, mint_sale_date, claim_all_roles, nft_role_mint_1, nft_role_mint_2, nft_role_mint_3, expiry_date, total_wl_spots, WL_image))
             await db.commit()
             return "NFT whitelist entry added successfully."
     except aiosqlite.Error as e:
@@ -412,7 +418,8 @@ async def retrieve_whitelist_entry_by_id(guild_id, WL_ID):
                     "nft_role_mint_2": entry[13],
                     "nft_role_mint_3": entry[14],
                     "expiry_date": entry[15],
-                    "total_wl_spots": entry[16]
+                    "total_wl_spots": entry[16],
+                    "WL_image": entry[17]
                 }
             else:
                 return None
@@ -448,7 +455,8 @@ async def retrieve_all_whitelists_for_guild(guild_id):
                         "nft_role_mint_2": entry[13],
                         "nft_role_mint_3": entry[14],
                         "expiry_date": entry[15],
-                        "total_wl_spots": entry[16]
+                        "total_wl_spots": entry[16],
+                        "WL_image": entry[17]
                     })
                 return results
             else:
@@ -469,7 +477,7 @@ async def delete_whitelist_entry(guild_id: str, wl_type: str):
     except aiosqlite.Error as e:
         return f"Database error: {e}"
 
-
+ 
 ####################
 # Whitelist claims #
 ####################

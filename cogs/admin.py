@@ -166,25 +166,44 @@ class Admin(commands.Cog):
         else:
             mint_sale_timestamp = 'TBA'
     
-        # Step 1: Add the token whitelist entry to the database
+        # Prompt the user to upload an image
+        await inter.response.send_message("Please upload an image for the token whitelist.")
+    
+        def check(m):
+            return m.author == inter.user and m.channel == inter.channel and len(m.attachments) > 0
+    
+        try:
+            # Await the user's response (with a timeout, say 60 seconds)
+            message = await self.bot.wait_for('message', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await inter.response.send_message("Image upload timed out. Please try the command again.")
+            return
+    
+        # Save the image to the specified directory with a unique filename
+        image = message.attachments[0]
+        image_path = f"media/wl_pfp/{guild_id}_{token_name}_{int(time.time())}.png"
+        await image.save(image_path)
+    
+        # Now proceed to upsert the data to the database, including the image path
         response = await add_token_wl(
             guild_id, channel_id, blockchain, token_name, total_token_supply,
             description, primary_role_id, secondary_role_id,
-            str_expiry_date, total_wl_spots_available, mint_sale_timestamp
+            str_expiry_date, total_wl_spots_available, mint_sale_timestamp, image_path
         )
     
         # Check if the response indicates an error
         if "error" in response.lower() or "exists" in response.lower():
-            await inter.response.send_message("Token WL addition unsuccessful.")
+            await inter.followup.send("Token WL addition unsuccessful.")  # Updated this line
             return
     
-        # Step 2: Send success message if everything went well
-        await inter.response.send_message("Token whitelist entry added successfully.")
-
-        # Step 3: Call the get_lists function from the Whitelists cog
+        # Send success message if everything went well
+        await inter.followup.send("Token whitelist entry added successfully.")  # Updated this line
+    
+        # Call the get_lists function from the Whitelists cog
         whitelists_cog = self.bot.get_cog("Whitelists")
         if whitelists_cog:
             await whitelists_cog.get_lists()
+
 
 
     @setup.subcommand(
@@ -222,23 +241,23 @@ class Admin(commands.Cog):
     ):
         # Convert channel and role mentions to IDs
         channel_id = str(channel_mention.id)
-        
+    
         # Use ternary operation to set -1 as default value if left blank
         no_mints_primary = no_mints_primary if no_mints_primary is not None else -1
         no_mints_secondary = no_mints_secondary if no_mints_secondary is not None else -1
         no_mints_tertiary = no_mints_tertiary if no_mints_tertiary is not None else -1
-        
+    
         primary_role_id = f'{str(primary_role.id)}:{no_mints_primary}'
         secondary_role_id = f'{str(secondary_role.id)}:{no_mints_secondary}' if secondary_role else None
         tertiary_role_id = f'{str(tertiary_role.id)}:{no_mints_tertiary}' if tertiary_role else None
-        
+    
         # Calculate Unix timestamp for the expiration date
         current_time = time.time()
         expiry_date = int(current_time + days_available * 24 * 60 * 60)
         str_expiry_date = str(expiry_date)
-        
+    
         guild_id = inter.guild.id
-        
+    
         # Convert mint_sale_date to timestamp or set to 'TBA' if blank
         if mint_sale_date:
             try:
@@ -249,27 +268,44 @@ class Admin(commands.Cog):
                 return
         else:
             mint_sale_timestamp = 'TBA'
-        
-        # Step 1: Add the NFT whitelist entry to the database
+    
+        # Prompt the user to upload an image
+        await inter.response.send_message("Please upload an image for the NFT whitelist.")
+    
+        def check(m):
+            return m.author == inter.user and m.channel == inter.channel and len(m.attachments) > 0
+    
+        try:
+            # Await the user's response (with a timeout, say 60 seconds)
+            message = await self.bot.wait_for('message', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await inter.response.send_message("Image upload timed out. Please try the command again.")
+            return
+    
+        # Save the image to the specified directory with a unique filename
+        image = message.attachments[0]
+        image_path = f"media/wl_pfp/{guild_id}_{wl_name}_{int(time.time())}.png"
+        await image.save(image_path)
+    
+        # Now proceed to upsert the data to the database, including the image path
         response = await add_nft_wl(
             guild_id, channel_id, blockchain, wl_name, supply,
             wl_description, mints_for_all_roles, primary_role_id, secondary_role_id, tertiary_role_id,
-            str_expiry_date, total_wl_spots_available, mint_sale_timestamp
+            str_expiry_date, total_wl_spots_available, mint_sale_timestamp, image_path
         )
-        
+    
         # Check if the response indicates an error
         if "error" in response.lower() or "exists" in response.lower():
-            await inter.response.send_message("NFT WL addition unsuccessful.")
+            await inter.followup.send("NFT WL addition unsuccessful.")  # Updated this line
             return
-        
-        # Step 2: Send success message if everything went well
-        await inter.response.send_message("NFT whitelist entry added successfully.")
-
-        # Step 3: Call the get_lists function from the Whitelists cog
+    
+        # Send success message if everything went well
+        await inter.followup.send("NFT whitelist entry added successfully.")  # Updated this line
+    
+        # Call the get_lists function from the Whitelists cog
         whitelists_cog = self.bot.get_cog("Whitelists")
         if whitelists_cog:
             await whitelists_cog.get_lists()
-
 
 
     @nextcord.slash_command()
