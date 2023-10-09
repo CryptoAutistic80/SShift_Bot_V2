@@ -181,7 +181,11 @@ class Admin(commands.Cog):
         # Step 2: Send success message if everything went well
         await inter.response.send_message("Token whitelist entry added successfully.")
 
-      
+        # Step 3: Call the get_lists function from the Whitelists cog
+        whitelists_cog = self.bot.get_cog("Whitelists")
+        if whitelists_cog:
+            await whitelists_cog.get_lists()
+
 
     @setup.subcommand(
         description=(
@@ -260,6 +264,11 @@ class Admin(commands.Cog):
         
         # Step 2: Send success message if everything went well
         await inter.response.send_message("NFT whitelist entry added successfully.")
+
+        # Step 3: Call the get_lists function from the Whitelists cog
+        whitelists_cog = self.bot.get_cog("Whitelists")
+        if whitelists_cog:
+            await whitelists_cog.get_lists()
 
 
 

@@ -15,8 +15,6 @@ class Reactions(commands.Cog):
         await self.load_reactions()
 
     async def load_reactions(self, specific_guild_id=None):
-        print("Loading reactions...")  # Debugging print statement
-    
         target_guilds = self.client.guilds
         if specific_guild_id:
             guild = self.client.get_guild(specific_guild_id)
@@ -33,7 +31,6 @@ class Reactions(commands.Cog):
                     sorted_reactions[channel_id].append((emoji, description, role_id))
                 self.guild_reactions[guild.id] = sorted_reactions
     
-                print(f"Loaded reactions for guild: {guild.id}")  # Debugging print statement
     
                 # Post or edit embeds and add reactions
                 for channel_id, role_data in sorted_reactions.items():
@@ -64,7 +61,7 @@ class Reactions(commands.Cog):
                             msg = existing_message  # This line ensures that msg is defined
                         else:
                             # Send the image as a separate attachment
-                            file = nextcord.File("media/reactions2.png", filename="reactions2.png")
+                            file = nextcord.File("media/reactions4.png", filename="reactions4.png")
                             await channel.send(file=file)
                             
                             # Send the embed message and define msg here

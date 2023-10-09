@@ -47,7 +47,7 @@ class Whitelists(commands.Cog):
                 self.guild_channel_ids[guild_id] = channel_ids
 
         # Delete existing bot messages in all channels
-        await self.delete_existing_bot_messages(all_channel_ids)
+        #await self.delete_existing_bot_messages(all_channel_ids)
 
         for guild in self.bot.guilds:
             guild_id_str = str(guild.id)
@@ -59,107 +59,130 @@ class Whitelists(commands.Cog):
                         await self.send_token_embed(entry)
 
 
-    async def send_nft_embed(self, entry):
-        channel_id = int(entry['channel_id'])
-        channel = self.bot.get_channel(channel_id)
-        if channel:
-            # Extracting the roles and forming a mention string
-            roles_mention = []
-            for i in range(1, 4):
-                role_data = entry[f'nft_role_mint_{i}']
-                if role_data:
-                    role_id, no_mints = role_data.split(':')
-                    no_mints = f"{no_mints} mints" if no_mints != '-1' else 'Unlimited'
-                    roles_mention.append(f"<@&{role_id}> = {no_mints}")
-
-            roles_mention_str = '\n'.join(roles_mention)
-
-            # Formatting the date
-            mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
-            formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
-
-            # Determine the extra line based on the 'claim_all_roles' value
-            if entry['claim_all_roles'] == 'YES':
-                extra_line = "For this whitelist your roles can be stacked (mints for each role)"
-            else:  # Assuming 'NO' is the only other value
-                extra_line = "For this whitelist you will be assigned mints for the highest qualifying role you have (mints for one role)"
-
-            # Creating the embed
-            title = f"**{entry['wl_name']}**"
-            description = (
-                f"{entry['wl_description']}\n"
-                f"```\n"
-                f"Blockchain:                {entry['blockchain']}\n"
-                f"Supply:                    {entry['supply']}\n"
-                f"Total spots available:     {entry['total_wl_spots']}\n"  # New line for total whitelist spots
-                f"Mint Date:                 {formatted_date}\n"
-                f"```"
-                f" \n"
-            )
-            embed = nextcord.Embed(
-                title=title,
-                description=description,
-                color=nextcord.Color.yellow()
-            )
-
-            # Sending the message, image, embed without the view and button
-            message_content = (
-                f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
-                f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
-                f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
-                f"{extra_line}\n\n"
-            )
-            image_path = 'media/NFT_WL_embed.webp'
-            file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            await channel.send(content=message_content, embed=embed, file=file)
-
-
-
     async def send_token_embed(self, entry):
         channel_id = int(entry['channel_id'])
         channel = self.bot.get_channel(channel_id)
         if channel:
-            # Extracting the roles and forming a mention string
-            roles_mention = []
-            for i in range(1, 3):  # Token roles are token_role_1 and token_role_2
-                role_id = entry[f'token_role_{i}']
-                if role_id:
-                    roles_mention.append(f"<@&{role_id}>")
+            # Check if the message with the same WL_ID already exists
+            existing_message = None
+            async for message in channel.history(limit=10):
+                if message.author == self.bot.user and str(entry['WL_ID']) in message.content:
+                    existing_message = message
+                    break
+    
+            if existing_message is None:
+                # Extracting the roles and forming a mention string
+                roles_mention = []
+                for i in range(1, 3):  # Token roles are token_role_1 and token_role_2
+                    role_id = entry[f'token_role_{i}']
+                    if role_id:
+                        roles_mention.append(f"<@&{role_id}>")
+    
+                roles_mention_str = '\n'.join(roles_mention)
+    
+                # Checking if mint_sale_date and supply are 'TBA' before attempting conversion
+                formatted_date, formatted_supply = 'TBA', 'TBA'
+                if entry['mint_sale_date'] != 'TBA':
+                    mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
+                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
+                if entry['supply'] is not None:
+                    formatted_supply = entry['supply']
+    
+                # Creating the embed
+                title = f"**{entry['wl_name']}**"
+                description = (
+                    f"{entry['wl_description']}\n"
+                    f"```\n"
+                    f"Blockchain:                {entry['blockchain']}\n"
+                    f"Supply:                    {formatted_supply}\n"
+                    f"Total spots available:     {entry['total_wl_spots']}\n"
+                    f"Launch Date:               {formatted_date}\n"
+                    f"```"
+                    f" \n"
+                )
+                embed = nextcord.Embed(
+                    title=title,
+                    description=description,
+                    color=nextcord.Color.blue()  # Changed color to blue for differentiation
+                )
+    
+                # Sending the message, image, embed without the view and button
+                message_content = (
+                    f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                    f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
+                    f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
+                )
+                image_path = 'media/TOKEN_WL_embed.webp'
+                file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
+                await channel.send(content=message_content, embed=embed, file=file)
 
-            roles_mention_str = '\n'.join(roles_mention)
 
-            # Formatting the date
-            mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
-            formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
+    async def send_nft_embed(self, entry):
+        channel_id = int(entry['channel_id'])
+        channel = self.bot.get_channel(channel_id)
+        if channel:
+            # Check if the message with the same WL_ID already exists
+            existing_message = None
+            async for message in channel.history(limit=10):
+                if message.author == self.bot.user and str(entry['WL_ID']) in message.content:
+                    existing_message = message
+                    break
 
-            # Creating the embed
-            title = f"**{entry['wl_name']}**"
-            description = (
-                f"{entry['wl_description']}\n"
-                f"```\n"
-                f"Blockchain:                {entry['blockchain']}\n"
-                f"Supply:                    {entry['supply']}\n"
-                f"Total spots available:     {entry['total_wl_spots']}\n"
-                f"Launch Date:               {formatted_date}\n"
-                f"```"
-                f" \n"
-            )
-            embed = nextcord.Embed(
-                title=title,
-                description=description,
-                color=nextcord.Color.blue()  # Changed color to blue for differentiation
-            )
+            if existing_message is None:
+                # Extracting the roles and forming a mention string
+                roles_mention = []
+                for i in range(1, 4):
+                    role_data = entry[f'nft_role_mint_{i}']
+                    if role_data:
+                        role_id, no_mints = role_data.split(':')
+                        no_mints = f"{no_mints} mints" if no_mints != '-1' else 'Unlimited'
+                        roles_mention.append(f"<@&{role_id}> = {no_mints}")
 
-            # Sending the message, image, embed without the view and button
-            message_content = (
-                f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
-                f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
-                f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
-            )
-            image_path = 'media/TOKEN_WL_embed.webp'
-            file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
-            await channel.send(content=message_content, embed=embed, file=file)
-          
+                roles_mention_str = '\n'.join(roles_mention)
+
+                # Checking if mint_sale_date and supply are 'TBA' before attempting conversion
+                formatted_date, formatted_supply = 'TBA', 'TBA'
+                if entry['mint_sale_date'] != 'TBA':
+                    mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
+                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
+                if entry['supply'] is not None:
+                    formatted_supply = entry['supply']
+
+                # Determine the extra line based on the 'claim_all_roles' value
+                if entry['claim_all_roles'] == 'YES':
+                    extra_line = "For this whitelist your roles can be stacked (mints for each role)"
+                else:  # Assuming 'NO' is the only other value
+                    extra_line = "For this whitelist you will be assigned mints for the highest qualifying role you have (mints for one role)"
+
+                # Creating the embed
+                title = f"**{entry['wl_name']}**"
+                description = (
+                    f"{entry['wl_description']}\n"
+                    f"```\n"
+                    f"Blockchain:                {entry['blockchain']}\n"
+                    f"Supply:                    {formatted_supply}\n"
+                    f"Total spots available:     {entry['total_wl_spots']}\n"
+                    f"Mint Date:                 {formatted_date}\n"
+                    f"```"
+                    f" \n"
+                )
+                embed = nextcord.Embed(
+                    title=title,
+                    description=description,
+                    color=nextcord.Color.gold()
+                )
+    
+                # Sending the message, image, embed without the view and button
+                message_content = (
+                    f"**A NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
+                    f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
+                    f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
+                    f"{extra_line}\n\n"
+                )
+                image_path = 'media/NFT_WL_embed.webp'
+                file = nextcord.File(image_path, filename='NFT_WL_embed.jpg')
+                await channel.send(content=message_content, embed=embed, file=file)
+
 
     @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
     async def claim(
@@ -224,8 +247,16 @@ class Whitelists(commands.Cog):
                 if claim_all_roles:
                     no_mints = sum([int(whitelist_data[f'nft_role_mint_{eligible_roles.index(role) + 1}'].split(':')[1]) for role in user_roles if int(whitelist_data[f'nft_role_mint_{eligible_roles.index(role) + 1}'].split(':')[1]) != -1])
                 else:
-                    primary_role = user_roles[0]
-                    no_mints = int(whitelist_data[f'nft_role_mint_{eligible_roles.index(primary_role) + 1}'].split(':')[1])
+                    # Define a role rank mapping based on role IDs
+                    role_ranks = {
+                        whitelist_data['nft_role_mint_1'].split(':')[0]: 3,  # Primary
+                        whitelist_data['nft_role_mint_2'].split(':')[0]: 2,  # Secondary
+                        whitelist_data['nft_role_mint_3'].split(':')[0]: 1   # Tertiary
+                    }
+                    
+                    # Determine the highest rank role the user has
+                    highest_rank_role_id = max(user_roles, key=lambda r: role_ranks.get(r, 0))
+                    no_mints = int(whitelist_data[f'nft_role_mint_{eligible_roles.index(highest_rank_role_id) + 1}'].split(':')[1])
     
             # Step 5: Use the database function to record the claim in the database
             user_roles_str = ":".join(user_roles)
