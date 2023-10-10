@@ -106,16 +106,21 @@ class Whitelists(commands.Cog):
                     description=description,
                     color=nextcord.Color.blue()  # Changed color to blue for differentiation
                 )
-    
+            
+                # Create a File object for the image
+                image_path = entry['WL_image']
+                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
+                file = nextcord.File(image_path, filename=f'TOKEN_WL_embed{file_extension}')
+            
+                # Set the image as the main image in the embed
+                embed.set_image(url=f"attachment://TOKEN_WL_embed{file_extension}")
+            
                 # Sending the message, image, embed without the view and button
                 message_content = (
                     f"**A token whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
                     f"🚨 Use the command **/claim** and input whitelist ID: **{entry['WL_ID']}** to lock in your spot 🚨\n\n"
                     f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
                 )
-                image_path = entry['WL_image']
-                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
-                file = nextcord.File(image_path, filename=f'TOKEN_WL_embed{file_extension}')
                 await channel.send(content=message_content, embed=embed, file=file)
 
 
@@ -173,7 +178,15 @@ class Whitelists(commands.Cog):
                     description=description,
                     color=nextcord.Color.gold()
                 )
-    
+            
+                # Create a File object for the image
+                image_path = entry['WL_image']
+                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
+                file = nextcord.File(image_path, filename=f'NFT_WL_embed{file_extension}')
+            
+                # Set the image as the main image in the embed
+                embed.set_image(url=f"attachment://NFT_WL_embed{file_extension}")
+            
                 # Sending the message, image, embed without the view and button
                 message_content = (
                     f"**An NFT whitelist brought to you by SShift Bot for:**\n\n{roles_mention_str}\n\n"
@@ -181,9 +194,6 @@ class Whitelists(commands.Cog):
                     f"You have till until <t:{int(entry['expiry_date'])}:F> to claim and submit your wallet!\n\n"
                     f"{extra_line}\n\n"
                 )
-                image_path = entry['WL_image']
-                file_extension = os.path.splitext(image_path)[1]  # Extract file extension
-                file = nextcord.File(image_path, filename=f'NFT_WL_embed{file_extension}')
                 await channel.send(content=message_content, embed=embed, file=file)
 
 
