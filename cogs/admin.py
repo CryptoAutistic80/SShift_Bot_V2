@@ -137,10 +137,10 @@ class Admin(commands.Cog):
             token_name: str = nextcord.SlashOption(description="Enter the name of the token"),
             description: str = nextcord.SlashOption(description="Provide a detailed description of the token and other relevant details"),
             days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
-            total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
             primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
             secondary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the secondary eligible role (optional)"),
             total_token_supply: Optional[int] = nextcord.SlashOption(description="Enter the total token supply, default TBA if left blank (optional)"),
+            total_wl_spots_available: Optional[int] = nextcord.SlashOption(default=-1, description="Enter the total number of whitelist spots available (optional)"),
             mint_sale_date: Optional[str] = nextcord.SlashOption(description="Enter the launch date and time in YYYY:MM:DD HH:MM format or leave blank for TBA (optional)")
     ):
         # Convert channel and role mentions to IDs
@@ -222,7 +222,6 @@ class Admin(commands.Cog):
             wl_name: str = nextcord.SlashOption(description="Enter the name of the NFT collection"),
             wl_description: str = nextcord.SlashOption(description="Provide a detailed description of the NFT collection and other relevant details"),
             days_available: int = nextcord.SlashOption(description="Enter the number of days the whitelist will be available to claim"),
-            total_wl_spots_available: int = nextcord.SlashOption(description="Enter the total number of whitelist spots available"),
             mints_for_all_roles: str = nextcord.SlashOption(
                 choices={
                     "Yes": "YES",
@@ -237,6 +236,7 @@ class Admin(commands.Cog):
             tertiary_role: Optional[nextcord.Role] = nextcord.SlashOption(description="Mention the tertiary eligible role (optional)"),
             no_mints_tertiary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for tertiary eligible role (optional)"),
             supply: Optional[int] = nextcord.SlashOption(description="Enter the total supply of NFTs, default TBA if left blank (optional)"),
+            total_wl_spots_available: Optional[int] = nextcord.SlashOption(default=-1, description="Enter the total number of whitelist spots available (optional)"),
             mint_sale_date: Optional[str] = nextcord.SlashOption(description="Enter the launch date and time in YYYY:MM:DD HH:MM format or leave blank for TBA (optional)")
     ):
         # Convert channel and role mentions to IDs

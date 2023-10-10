@@ -82,30 +82,39 @@ class Whitelists(commands.Cog):
                 roles_mention_str = '\n'.join(roles_mention)
     
                 # Checking if mint_sale_date and supply are 'TBA' before attempting conversion
-                formatted_date, formatted_supply = 'TBA', 'TBA'
+                formatted_date, formatted_time, formatted_supply = 'TBA', 'TBA', 'TBA'
                 if entry['mint_sale_date'] != 'TBA':
                     mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
-                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
+                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')}"  # type: ignore
+                    formatted_time = f"{mint_date.strftime('%H:%M')} UTC"
+                
                 if entry['supply'] is not None:
                     formatted_supply = entry['supply']
-    
+                
+                # Determine the display text for total_wl_spots
+                total_wl_spots_text = "undeclared" if entry['total_wl_spots'] == -1 else entry['total_wl_spots']
+                
                 # Creating the embed
                 title = f"**{entry['wl_name']}**"
                 description = (
-                    f"{entry['wl_description']}\n"
+                    f"*{entry['wl_description']}*\n"
                     f"```\n"
-                    f"Blockchain:                {entry['blockchain']}\n"
-                    f"Supply:                    {formatted_supply}\n"
-                    f"Total spots available:     {entry['total_wl_spots']}\n"
-                    f"Launch Date:               {formatted_date}\n"
+                    f"Blockchain:          {entry['blockchain']}\n"
+                    f"\n"
+                    f"Supply:              {formatted_supply}\n"
+                    f"No. spots avail:     {total_wl_spots_text}\n"
+                    f"\n"
+                    f"Launch date:         {formatted_date}\n"
+                    f"Launch time:         {formatted_time}\n"
+                    f"\n"
                     f"```"
-                    f" \n"
                 )
                 embed = nextcord.Embed(
                     title=title,
                     description=description,
                     color=nextcord.Color.blue()  # Changed color to blue for differentiation
                 )
+
             
                 # Create a File object for the image
                 image_path = entry['WL_image']
@@ -148,36 +157,45 @@ class Whitelists(commands.Cog):
                 roles_mention_str = '\n'.join(roles_mention)
 
                 # Checking if mint_sale_date and supply are 'TBA' before attempting conversion
-                formatted_date, formatted_supply = 'TBA', 'TBA'
+                formatted_date, formatted_time, formatted_supply = 'TBA', 'TBA', 'TBA'
                 if entry['mint_sale_date'] != 'TBA':
                     mint_date = datetime.utcfromtimestamp(int(entry['mint_sale_date']))
-                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')} at {mint_date.strftime('%H:%M')} UTC"  # type: ignore
+                    formatted_date = f"{self.p.ordinal(mint_date.day)} {mint_date.strftime('%B %Y')}"  # type: ignore
+                    formatted_time = f"{mint_date.strftime('%H:%M')} UTC"
+                
                 if entry['supply'] is not None:
                     formatted_supply = entry['supply']
-
+                
                 # Determine the extra line based on the 'claim_all_roles' value
                 if entry['claim_all_roles'] == 'YES':
                     extra_line = "For this whitelist your roles can be stacked (mints for each role)"
                 else:  # Assuming 'NO' is the only other value
                     extra_line = "For this whitelist you will be assigned mints for the highest qualifying role you have (mints for one role)"
-
+                
+                # Determine the display text for total_wl_spots
+                total_wl_spots_text = "undeclared" if entry['total_wl_spots'] == -1 else entry['total_wl_spots']
+                
                 # Creating the embed
                 title = f"**{entry['wl_name']}**"
                 description = (
-                    f"{entry['wl_description']}\n"
+                    f"*{entry['wl_description']}*\n"
                     f"```\n"
-                    f"Blockchain:                {entry['blockchain']}\n"
-                    f"Supply:                    {formatted_supply}\n"
-                    f"Total spots available:     {entry['total_wl_spots']}\n"
-                    f"Mint Date:                 {formatted_date}\n"
-                    f"```"
+                    f"Blockchain:          {entry['blockchain']}\n"
+                    f"\n"
+                    f"Supply:              {formatted_supply}\n"
+                    f"No. spots avail:     {total_wl_spots_text}\n"
+                    f"\n"
+                    f"Mint date:           {formatted_date}\n"
+                    f"Mint time:           {formatted_time}\n"
                     f" \n"
+                    f"```"
                 )
                 embed = nextcord.Embed(
                     title=title,
                     description=description,
                     color=nextcord.Color.gold()
                 )
+
             
                 # Create a File object for the image
                 image_path = entry['WL_image']
