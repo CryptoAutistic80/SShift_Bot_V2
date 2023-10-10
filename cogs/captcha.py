@@ -82,13 +82,13 @@ class CaptchaView(View):
     
             if self.embed_message:
                 embed = self.embed_message.embeds[0]
-                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {self.user_input.ljust(8, '_')}"
+                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {self.user_input.ljust(5, '_')}"
                 embed.set_image(url=self.image_url)  
                 await self.embed_message.edit(embed=embed)
     
             logging.info(f"Digit added to input: {interaction.data['custom_id'].split('_')[1]}")
     
-            if len(self.user_input) == 8:
+            if len(self.user_input) == 5:
                 verification_settings = await retrieve_verification(interaction.guild.id)
                 if verification_settings is None:
                     await interaction.channel.send("Verification settings not found.")
@@ -121,7 +121,7 @@ class CaptchaView(View):
             # Update the embed to show the current input
             if self.embed_message:
                 embed = self.embed_message.embeds[0]
-                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {self.user_input.ljust(8, '_')}"
+                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {self.user_input.ljust(5, '_')}"
                 embed.set_image(url=self.image_url)  # Set the image URL back to its original value
                 await self.embed_message.edit(embed=embed)
             
@@ -129,7 +129,7 @@ class CaptchaView(View):
 
     async def regenerate_captcha(self, interaction):
         if interaction.user.id == self.member_id:
-            new_captcha_code = ''.join(random.choices(string.digits, k=8))  # Generate a new captcha code
+            new_captcha_code = ''.join(random.choices(string.digits, k=5))  # Generate a new captcha code
             self.captcha_code = new_captcha_code  # Update the current captcha code
 
             image = self.create_captcha_image(new_captcha_code)  # Create a new captcha image
@@ -139,7 +139,7 @@ class CaptchaView(View):
             # Update the embed with the new image and reset the input
             if self.embed_message:
                 embed = self.embed_message.embeds[0]
-                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {'_'*8}"
+                embed.description = f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {'_'*5}"
                 embed.set_image(url=f'attachment://captcha_{self.member_id}.png')  # Set the image URL to the new image
                 files = [nextcord.File(image_path, filename=f'captcha_{self.member_id}.png')]
                 await self.embed_message.edit(files=files, embed=embed)  # Edit the message with the new embed
@@ -250,7 +250,7 @@ class Captcha(commands.Cog):
         
         self.captchas[member.id] = captcha_code
     
-        embed = nextcord.Embed(title="CAPTCHA Verification", description=f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {'_'*8}")
+        embed = nextcord.Embed(title="CAPTCHA Verification", description=f"Hey there froggies 🐸! Just a quick hop, skip, and a jump through this CAPTCHA to prove you're more amphibian than bot - remember, the only bot allowed here is me! Happy trading! 🚀📈.\n\nCurrent Input: {'_'*5}")
         files = [nextcord.File(image_path, filename=f'captcha_{member.id}.png')]
         embed.set_image(url=f'attachment://captcha_{member.id}.png')
         
@@ -262,7 +262,7 @@ class Captcha(commands.Cog):
 
     def generate_captcha_code(self):
         logging.info('Generating captcha code')
-        return ''.join(random.choices(string.digits, k=8))
+        return ''.join(random.choices(string.digits, k=5))
 
     def create_captcha_image(self, captcha_code):
         logging.info('Creating captcha image')
