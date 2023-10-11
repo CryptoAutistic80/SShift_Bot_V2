@@ -369,7 +369,7 @@ class Whitelists(commands.Cog):
             f"Type: {whitelist_detail['type']}\n"
             f"Whitelist Name: {whitelist_detail['wl_name']}\n"
             f"Blockchain: {whitelist_detail['blockchain']}\n"
-            f"Supply: {format(int(whitelist_detail['supply']), ',') if whitelist_detail['supply'] != 'TBA' else whitelist_detail['supply']}\n"
+            f"Supply: {format(int(whitelist_detail['supply']), ',') if whitelist_detail['supply'] not in [None, 'TBA'] else whitelist_detail['supply']}\n"
             + (f"No. of Mints: {claim['no_mints']}\n" if whitelist_detail['type'] == 'NFT' else '')
             + f"Address: {claim['address'][:6]}...\n"
             + (f"Mint Date: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%dth %b %Y')}\nMint Time: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%H:%M')}\n" if whitelist_detail['type'] == 'NFT' and whitelist_detail['mint_sale_date'] != 'TBA' else '')
