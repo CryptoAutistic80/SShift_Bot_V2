@@ -188,7 +188,7 @@ class Captcha(commands.Cog):
         embed = nextcord.Embed(
             title=" ",
             description="**Thank you for using SShift Bot!**\n\nTo start the verification process\n\nplease type **/verify**.",
-            color=0x00ff00
+            color=0x7851A9
         )
     
         # Create a File object for the shield image

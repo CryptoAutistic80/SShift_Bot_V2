@@ -55,11 +55,11 @@ class Admin(commands.Cog):
 
     @setup.subcommand()
     @commands.has_permissions(administrator=True)
-    async def verification(self, inter, verify_channel: str, verified_role: str):
+    async def verification(self, inter, verify_channel: nextcord.TextChannel, verified_role: nextcord.Role):
         guild_id = inter.guild.id
     
         # Step 1: Add verification
-        response = await add_verification(guild_id, verify_channel, verified_role)
+        response = await add_verification(guild_id, verify_channel.id, verified_role.id)
         if response is None:
             response = ''
         response += "\nVerification setup successful."
@@ -73,7 +73,7 @@ class Admin(commands.Cog):
     
     @setup.subcommand()
     @commands.has_permissions(administrator=True)
-    async def reaction_roles(self, inter, channel_id: str, role_name: str, description: str, emoji: str):
+    async def reaction_roles(self, inter, channel: nextcord.TextChannel, role_name: str, description: str, emoji: str):
         guild_id = inter.guild.id
     
         # Step 1: Validate the emoji
@@ -97,7 +97,7 @@ class Admin(commands.Cog):
     
         # Step 4: Update or insert the reaction role
         role_id = role.id
-        response = await upsert_reaction(guild_id, channel_id, emoji, description, role_id)
+        response = await upsert_reaction(guild_id, channel.id, emoji, description, role_id)
         if response:
             await inter.response.send_message(response)  # This will send the error message back if there's an issue
         else:
@@ -109,16 +109,15 @@ class Admin(commands.Cog):
 
     @setup.subcommand()
     @commands.has_permissions(administrator=True)
-    async def welcome(self, inter, channel_id: str, message: str):
+    async def welcome(self, inter, channel: nextcord.TextChannel, message: str):
         guild_id = inter.guild.id
-
+    
         # Add or edit the welcome message
-        response = await upsert_welcome_message(guild_id, channel_id, message)
+        response = await upsert_welcome_message(guild_id, channel.id, message)
         if response:
             await inter.response.send_message(response)  # This will send the error message back if there's an issue
         else:
             await inter.response.send_message("Welcome setup successful.")
-
   
 
     @setup.subcommand(

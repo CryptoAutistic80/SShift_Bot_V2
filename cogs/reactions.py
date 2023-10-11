@@ -44,7 +44,7 @@ class Reactions(commands.Cog):
                         embed = nextcord.Embed(
                             title="**React for Roles**",
                             description="\u200b",  
-                            color=0x3498db
+                            color=0x7851A9
                         )
         
                         # Set the image as the main image in the embed

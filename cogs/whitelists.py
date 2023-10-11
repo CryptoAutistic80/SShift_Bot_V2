@@ -118,7 +118,7 @@ class Whitelists(commands.Cog):
                 embed = nextcord.Embed(
                     title=title,
                     description=description,
-                    color=nextcord.Color.blue()  # Changed color to blue for differentiation
+                    color=0x7851A9
                 )
 
             
@@ -202,7 +202,7 @@ class Whitelists(commands.Cog):
                 embed = nextcord.Embed(
                     title=title,
                     description=description,
-                    color=nextcord.Color.gold()
+                    color=0x7851A9
                 )
 
             
