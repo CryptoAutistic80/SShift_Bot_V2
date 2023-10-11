@@ -1,4 +1,5 @@
 import os
+import re
 import inflect
 import asyncio
 from datetime import datetime
@@ -130,7 +131,7 @@ class Whitelists(commands.Cog):
                 embed.set_image(url=f"attachment://TOKEN_WL_embed{file_extension}")
 
                 # Set the footer and its icon in the embed
-                embed.set_footer(text="https://www.SShift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
+                embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
             
                 # Sending the message, image, embed without the view and button
                 message_content = (
@@ -214,7 +215,7 @@ class Whitelists(commands.Cog):
                 embed.set_image(url=f"attachment://NFT_WL_embed{file_extension}")
 
                 # Set the footer and its icon in the embed
-                embed.set_footer(text="https://www.SShift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
+                embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
             
                 # Sending the message, image, embed without the view and button
                 message_content = (
@@ -226,7 +227,7 @@ class Whitelists(commands.Cog):
                 await channel.send(content=message_content, embed=embed, file=file)
 
 
-    @nextcord.slash_command(description="Claim your whitelist spot. (Under development)")
+    @nextcord.slash_command(description="Claim your whitelist spot & submit your wallet")
     async def claim(
         self, 
         interaction: nextcord.Interaction, 
@@ -280,6 +281,18 @@ class Whitelists(commands.Cog):
             user_roles = [str(role.id) for role in member.roles if str(role.id) in eligible_roles]
             if not user_roles:
                 await interaction.response.send_message("You do not have the required role(s) to claim this whitelist.", ephemeral=True)
+                return
+
+            # Define regex patterns for ETH, SOL, and APTOS addresses
+            eth_address_pattern = re.compile(r'^0x[a-fA-F0-9]{40}$')
+            sol_address_pattern = re.compile(r'^[1-9A-HJ-NP-Za-km-z]{44}$')
+            aptos_address_pattern = re.compile(r'^0x[a-fA-F0-9]{64}$')
+
+            # Check if the wallet_address matches any of the regex patterns
+            if not (eth_address_pattern.match(wallet_address) or
+                    sol_address_pattern.match(wallet_address) or
+                    aptos_address_pattern.match(wallet_address)):
+                await interaction.response.send_message("Invalid wallet address format.", ephemeral=True)
                 return
     
             # Step 2.5: Check if type is NFT or Token
