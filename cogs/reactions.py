@@ -50,6 +50,12 @@ class Reactions(commands.Cog):
                         # Set the image as the main image in the embed
                         file = nextcord.File("media/reactions4.png", filename="reactions4.png")
                         embed.set_image(url="attachment://reactions4.png")
+
+                        # Set thumbnail image
+                        embed.set_thumbnail(url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
+
+                        # Set the footer and its icon in the embed
+                        embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
         
                         for emoji, desc, role_id in role_data:
                             role = guild.get_role(int(role_id))

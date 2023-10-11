@@ -187,7 +187,7 @@ class Captcha(commands.Cog):
         channel = self.bot.get_channel(int(verify_channel))
         embed = nextcord.Embed(
             title=" ",
-            description="**Thank you for using SShift Bot!**\n\nTo start the verification process, please type\n**/verify**.",
+            description="**Thank you for using SShift Bot!**\n\nTo start the verification process\n\nplease type **/verify**.",
             color=0x00ff00
         )
     
@@ -196,6 +196,12 @@ class Captcha(commands.Cog):
     
         # Set the shield image as the main image in the embed
         embed.set_image(url="attachment://shield.png")
+      
+        # Set thumbnail image
+        embed.set_thumbnail(url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
+
+        # Set the footer and its icon in the embed
+        embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
         
         await channel.send(file=file, embed=embed)
 

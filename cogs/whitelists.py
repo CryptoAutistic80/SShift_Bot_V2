@@ -7,7 +7,12 @@ from typing import List
 import nextcord
 from nextcord.ext import commands
 
-from database.database_manager import retrieve_all_whitelists_for_guild, retrieve_whitelist_entry_by_id, retrieve_all_claims_for_user, upsert_whitelist_claim
+from database.database_manager import (
+    retrieve_all_whitelists_for_guild,
+    retrieve_whitelist_entry_by_id,
+    retrieve_all_claims_for_user,
+    upsert_whitelist_claim
+)
 
 
 
@@ -99,13 +104,13 @@ class Whitelists(commands.Cog):
                 description = (
                     f"*{entry['wl_description']}*\n"
                     f"```\n"
-                    f"Blockchain:          {entry['blockchain']}\n"
+                    f"Blockchain:       {entry['blockchain']}\n"
                     f"\n"
-                    f"Supply:              {formatted_supply}\n"
-                    f"No. spots avail:     {total_wl_spots_text}\n"
+                    f"Supply:           {formatted_supply}\n"
+                    f"No. spots avail:  {total_wl_spots_text}\n"
                     f"\n"
-                    f"Launch date:         {formatted_date}\n"
-                    f"Launch time:         {formatted_time}\n"
+                    f"Launch date:      {formatted_date}\n"
+                    f"Launch time:      {formatted_time}\n"
                     f"\n"
                     f"```"
                 )
@@ -123,6 +128,9 @@ class Whitelists(commands.Cog):
             
                 # Set the image as the main image in the embed
                 embed.set_image(url=f"attachment://TOKEN_WL_embed{file_extension}")
+
+                # Set the footer and its icon in the embed
+                embed.set_footer(text="https://www.SShift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
             
                 # Sending the message, image, embed without the view and button
                 message_content = (
@@ -180,13 +188,13 @@ class Whitelists(commands.Cog):
                 description = (
                     f"*{entry['wl_description']}*\n"
                     f"```\n"
-                    f"Blockchain:          {entry['blockchain']}\n"
+                    f"Blockchain:       {entry['blockchain']}\n"
                     f"\n"
-                    f"Supply:              {formatted_supply}\n"
-                    f"No. spots avail:     {total_wl_spots_text}\n"
+                    f"Supply:           {formatted_supply}\n"
+                    f"No. spots avail:  {total_wl_spots_text}\n"
                     f"\n"
-                    f"Mint date:           {formatted_date}\n"
-                    f"Mint time:           {formatted_time}\n"
+                    f"Mint date:        {formatted_date}\n"
+                    f"Mint time:        {formatted_time}\n"
                     f" \n"
                     f"```"
                 )
@@ -204,6 +212,9 @@ class Whitelists(commands.Cog):
             
                 # Set the image as the main image in the embed
                 embed.set_image(url=f"attachment://NFT_WL_embed{file_extension}")
+
+                # Set the footer and its icon in the embed
+                embed.set_footer(text="https://www.SShift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
             
                 # Sending the message, image, embed without the view and button
                 message_content = (
