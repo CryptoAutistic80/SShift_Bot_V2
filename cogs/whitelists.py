@@ -314,6 +314,47 @@ class Whitelists(commands.Cog):
         else:
             await interaction.response.send_message("You can't use this command in this channel.", ephemeral=True)
 
+    @nextcord.slash_command(description="View all your whitelists.")
+    async def view_my_whitelists(
+        self, 
+        interaction: nextcord.Interaction
+    ):
+        # User Identification
+        user_id = interaction.user.id
+        
+        # Database Query to get all claims for the user
+        claims = await retrieve_all_claims_for_user(user_id)
+        if not claims:
+            await interaction.response.send_message("You have no whitelist claims.", ephemeral=True)
+            return
+    
+        # Now iterate through each claim, and fetch the detailed whitelist record
+        detailed_claims = []
+        for claim in claims:
+            guild_id = claim['guild_id']
+            wl_id = claim['WL_ID']
+            whitelist_detail = await retrieve_whitelist_entry_by_id(guild_id, wl_id)
+            if whitelist_detail:
+                detailed_claims.append((claim, whitelist_detail))
+            else:
+                print(f"Failed to retrieve whitelist detail for WL_ID: {wl_id} in guild: {guild_id}")
+    
+        # Now format and send the detailed claims data back to the user
+        detailed_claims_text = "\n\n".join(
+            f"Server: {self.bot.get_guild(int(claim['guild_id'])).name}\n"
+            f"Type: {whitelist_detail['type']}\n"
+            f"Whitelist Name: {whitelist_detail['wl_name']}\n"
+            f"Blockchain: {whitelist_detail['blockchain']}\n"
+            f"Supply: {format(int(whitelist_detail['supply']), ',') if whitelist_detail['supply'] != 'TBA' else whitelist_detail['supply']}\n"
+            + (f"No. of Mints: {claim['no_mints']}\n" if whitelist_detail['type'] == 'NFT' else '')
+            + f"Address: {claim['address'][:6]}...\n"
+            + (f"Mint Date: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%dth %b %Y')}\nMint Time: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%H:%M')}\n" if whitelist_detail['type'] == 'NFT' and whitelist_detail['mint_sale_date'] != 'TBA' else '')
+            + (f"Launch Date: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%dth %b %Y')}\nLaunch Time: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%H:%M')}\n" if whitelist_detail['type'] == 'TOKEN' and whitelist_detail['mint_sale_date'] != 'TBA' else '')
+            for claim, whitelist_detail in detailed_claims
+        )
+        
+        await interaction.response.send_message(detailed_claims_text, ephemeral=True)
+
 
 def setup(bot):
     bot.add_cog(Whitelists(bot))
