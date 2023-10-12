@@ -20,7 +20,7 @@ class Reactions(commands.Cog):
             guild = self.client.get_guild(specific_guild_id)
             if guild:
                 target_guilds = [guild]
-    
+
         # Retrieve and sort reactions for the target guilds
         for guild in target_guilds:
             reactions = await retrieve_reactions(guild.id)
@@ -30,23 +30,22 @@ class Reactions(commands.Cog):
                     channel_id, emoji, description, role_id = reaction
                     sorted_reactions[channel_id].append((emoji, description, role_id))
                 self.guild_reactions[guild.id] = sorted_reactions
-    
-    
+
                 for channel_id, role_data in sorted_reactions.items():
                     channel = guild.get_channel(int(channel_id))
                     if channel:
                         existing_message = None
-                        async for message in channel.history(limit=10):
-                            if message.author == self.client.user and len(message.embeds) > 0:
+                        async for message in channel.history(limit=100):  # Increase limit for better accuracy
+                            if message.author == self.client.user and len(message.embeds) > 0 and message.embeds[0].title == "**React for Roles**":
                                 existing_message = message
                                 break
-        
+
                         embed = nextcord.Embed(
                             title="**React for Roles**",
                             description="\u200b",  
                             color=0x7851A9
                         )
-        
+
                         # Set the image as the main image in the embed
                         file = nextcord.File("media/reactions4.png", filename="reactions4.png")
                         embed.set_image(url="attachment://reactions4.png")
@@ -56,21 +55,23 @@ class Reactions(commands.Cog):
 
                         # Set the footer and its icon in the embed
                         embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
-        
+
                         for emoji, desc, role_id in role_data:
                             role = guild.get_role(int(role_id))
                             if role:
                                 embed.add_field(name=f"{emoji} - @{role.name} - {desc}", value="\u200b", inline=False)
-        
+
+                        # If there's an existing message, edit it. Otherwise, send a new one.
                         if existing_message:
                             await existing_message.edit(embed=embed)
-                            msg = existing_message  # This line ensures that msg is defined
+                            msg = existing_message
                         else:
                             msg = await channel.send(file=file, embed=embed)
-    
-                        # Add reactions to the embed message
+
+                        current_reactions = [str(reaction.emoji) for reaction in msg.reactions]
                         for emoji, _, _ in role_data:
-                            await msg.add_reaction(emoji)
+                            if emoji not in current_reactions:
+                                await msg.add_reaction(emoji)
 
   
     @commands.Cog.listener()
