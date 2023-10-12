@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List
 
 import nextcord
+import nextcord.ui
 from nextcord.ext import commands
 
 from database.database_manager import (
@@ -17,6 +18,38 @@ from database.database_manager import (
 
 
 
+class WhitelistView(nextcord.ui.View):
+    def __init__(self, entries, embed_creator, current_index=0):
+        super().__init__()
+        self.entries = entries
+        self.current_index = current_index
+        self.embed_creator = embed_creator
+  
+    @nextcord.ui.button(label="⏪", style=nextcord.ButtonStyle.primary)
+    async def previous_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        self.current_index -= 1
+        if self.current_index < 0:
+            self.current_index = 0  # Prevent going below the first entry
+        await self.update_embed(interaction)
+  
+    @nextcord.ui.button(label="⏩", style=nextcord.ButtonStyle.primary)
+    async def next_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        self.current_index += 1
+        if self.current_index >= len(self.entries):
+            self.current_index = len(self.entries) - 1  # Prevent going beyond the last entry
+        await self.update_embed(interaction)
+  
+    @nextcord.ui.button(label="Close", style=nextcord.ButtonStyle.danger)
+    async def close_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
+        await interaction.message.delete()
+  
+    async def update_embed(self, interaction):
+        claim, whitelist_detail = self.entries[self.current_index]
+        new_embed = await self.embed_creator(claim, whitelist_detail)
+        await interaction.response.edit_message(embed=new_embed)
+
+
+
 class Whitelists(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -24,10 +57,60 @@ class Whitelists(commands.Cog):
         self.guild_channel_ids = {}  # To store the channel IDs
         self.p = inflect.engine()  # For ordinal day formatting
 
+
     @commands.Cog.listener()
     async def on_ready(self):
         print("Whitelists ready")
         await self.get_lists()
+
+    async def create_whitelist_embed(self, claim, whitelist_detail):
+        guild = self.bot.get_guild(int(claim['guild_id']))
+        guild_name = guild.name if guild else "Unknown Server"
+
+        embed = nextcord.Embed(
+            title="YOUR CLAIMED WHITELISTS",
+            color=0x7851A9  # Purple color
+        )
+
+        # General Information
+        description = "```\n"  # Start of code block
+        description += f"Name:            {whitelist_detail['wl_name']}\n"
+        description += f"Server:          {guild_name}\n"
+        description += " \n"
+        description += f"Type:            {whitelist_detail['type']}\n"
+        description += f"Blockchain:      {whitelist_detail['blockchain']}\n"
+        description += f"Supply:          {format(int(whitelist_detail['supply']), ',') if whitelist_detail['supply'] not in [None, 'TBA'] else whitelist_detail['supply']}\n"
+        description += " \n"
+        description += f"Address:         {claim['address'][:6]}...\n"
+
+        # Formatting date with ordinal suffix
+        if whitelist_detail['mint_sale_date'] != 'TBA':
+            date_str = datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%d %b %Y at %H:%M')
+            day_ordinal = self.p.ordinal(str(int(date_str.split()[0])))  # Convert int to str before passing to ordinal
+            date_str = date_str.replace(date_str.split()[0], day_ordinal)
+        else:
+            date_str = 'TBA'
+        
+        # NFT-specific Information
+        if whitelist_detail['type'] == 'NFT':
+            description += f"No. of Mints:    {claim['no_mints']}\n"
+            description += " \n"
+            description += f"Mint Date:       {date_str}\n"
+        # TOKEN-specific Information
+        elif whitelist_detail['type'] == 'TOKEN':
+            description += " \n"
+            description += f"Launch Date:     {date_str}\n"
+
+        description += "```"  # End of code block
+
+        embed.description = description
+
+        # Set the footer and its icon in the embed
+        embed.set_footer(text="https://www.sshift.xyz", icon_url="https://gn3l76apsy7n5ntu2vde6vqhblsseufejityx5zyxoronukmmhrq.arweave.net/M3a_-A-WPt62dNVGT1YHCuUiUKRKJ4v3OLui5tFMYeM/16.gif")
+
+        return embed
+
+
 
     async def delete_existing_bot_messages(self, channel_ids):
         for channel_id in channel_ids:
@@ -339,20 +422,14 @@ class Whitelists(commands.Cog):
             await interaction.response.send_message("You can't use this command in this channel.", ephemeral=True)
 
     @nextcord.slash_command(description="View all your whitelists.")
-    async def view_my_whitelists(
-        self, 
-        interaction: nextcord.Interaction
-    ):
-        # User Identification
+    async def view_my_whitelists(self, interaction: nextcord.Interaction):
         user_id = interaction.user.id
-        
-        # Database Query to get all claims for the user
         claims = await retrieve_all_claims_for_user(user_id)
+        
         if not claims:
             await interaction.response.send_message("You have no whitelist claims.", ephemeral=True)
             return
     
-        # Now iterate through each claim, and fetch the detailed whitelist record
         detailed_claims = []
         for claim in claims:
             guild_id = claim['guild_id']
@@ -360,24 +437,10 @@ class Whitelists(commands.Cog):
             whitelist_detail = await retrieve_whitelist_entry_by_id(guild_id, wl_id)
             if whitelist_detail:
                 detailed_claims.append((claim, whitelist_detail))
-            else:
-                print(f"Failed to retrieve whitelist detail for WL_ID: {wl_id} in guild: {guild_id}")
     
-        # Now format and send the detailed claims data back to the user
-        detailed_claims_text = "\n\n".join(
-            f"Server: {self.bot.get_guild(int(claim['guild_id'])).name}\n"
-            f"Type: {whitelist_detail['type']}\n"
-            f"Whitelist Name: {whitelist_detail['wl_name']}\n"
-            f"Blockchain: {whitelist_detail['blockchain']}\n"
-            f"Supply: {format(int(whitelist_detail['supply']), ',') if whitelist_detail['supply'] not in [None, 'TBA'] else whitelist_detail['supply']}\n"
-            + (f"No. of Mints: {claim['no_mints']}\n" if whitelist_detail['type'] == 'NFT' else '')
-            + f"Address: {claim['address'][:6]}...\n"
-            + (f"Mint Date: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%dth %b %Y')}\nMint Time: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%H:%M')}\n" if whitelist_detail['type'] == 'NFT' and whitelist_detail['mint_sale_date'] != 'TBA' else '')
-            + (f"Launch Date: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%dth %b %Y')}\nLaunch Time: {datetime.utcfromtimestamp(int(whitelist_detail['mint_sale_date'])).strftime('%H:%M')}\n" if whitelist_detail['type'] == 'TOKEN' and whitelist_detail['mint_sale_date'] != 'TBA' else '')
-            for claim, whitelist_detail in detailed_claims
-        )
-        
-        await interaction.response.send_message(detailed_claims_text, ephemeral=True)
+        first_embed = await self.create_whitelist_embed(*detailed_claims[0])
+        view = WhitelistView(detailed_claims, self.create_whitelist_embed)
+        await interaction.response.send_message(embed=first_embed, view=view)
 
 
 def setup(bot):
