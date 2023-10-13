@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import re
 import time
+import csv
 from typing import Annotated, Optional
 
 import nextcord
@@ -20,6 +21,7 @@ from database.database_manager import (
     retrieve_welcome_message,
     upsert_reaction,
     upsert_welcome_message,
+    fetch_user_entries_for_wl,
 )
 
 
@@ -43,7 +45,64 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Admin cog ready")
+      
 
+    @nextcord.slash_command(name="admin", description="Root command for admin operations.")
+    async def admin(self, inter):
+        guild_membership = await retrieve_guild_membership(inter.guild.id)
+        if guild_membership is None:
+            await inter.response.send_message('Guild does not have a membership entry, cannot proceed.')
+            return
+
+        await inter.response.send_message('admin command invoked')
+
+    @admin.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def fetch_sheet(self, inter: nextcord.Interaction, wl_id: int):
+        # Get the current guild id
+        guild_id = inter.guild.id
+
+        # Call the function to fetch user entries for the specified WL_ID
+        user_entries = await fetch_user_entries_for_wl(guild_id, wl_id)
+
+        # Check if any entries were found
+        if user_entries:
+            # Create a CSV file to store the data
+            file_name = f'wl_{wl_id}_{guild_id}.csv'
+            with open(file_name, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                # Write header row
+                writer.writerow(['User', 'Roles', 'Address', 'Number of Mints'])
+
+                # Process each entry and write to CSV
+                for entry in user_entries:
+                    user_id_str = entry['user_id'].strip('<@&>')
+                    user = inter.guild.get_member(int(user_id_str))
+                    user_name = f'@{user.display_name}' if user else entry['user_id']
+
+                    role_ids_str = entry['user_roles'].split(':')
+                    role_names = []
+                    for role_id_str in role_ids_str:
+                        role_id = int(role_id_str.strip('<@&>'))
+                        role = inter.guild.get_role(role_id)
+                        if role:
+                            role_names.append(f'@{role.name}')
+                        else:
+                            role_names.append(role_id_str)
+                    roles = ','.join(role_names)
+
+                    address = entry['address']
+                    no_mints = entry['no_mints']
+                    writer.writerow([user_name, roles, address, no_mints])  # Write data rows
+
+            # Upload the file to Discord
+            with open(file_name, 'rb') as file:
+                await inter.response.send_message('Here is the requested data:', file=nextcord.File(file, file_name))
+        else:
+            await inter.response.send_message(f'No user entries found for WL_ID {wl_id}.')
+
+
+  
     @nextcord.slash_command()
     async def setup(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)

@@ -1,20 +1,22 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from flask import Flask, send_from_directory
 from threading import Thread
-import os
 
-app = FastAPI()
+app = Flask(__name__, static_folder='static')
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+@app.route('/')
+def index():
+    return send_from_directory('static', 'index.html')
 
-@app.get("/")
-async def root():
-    return FileResponse("static/index.html")
+@app.route('/style.css')
+def serve_style():
+    return send_from_directory('static', 'style.css')
+
+@app.route('/Page Media/bot_pfp.gif')
+def serve_gif():
+    return send_from_directory('static/Page Media', 'bot_pfp.gif')
 
 def run():
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    app.run(host="0.0.0.0", port=8080)
 
 def start_server():
     t = Thread(target=run)

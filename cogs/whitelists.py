@@ -25,14 +25,14 @@ class WhitelistView(nextcord.ui.View):
         self.current_index = current_index
         self.embed_creator = embed_creator
   
-    @nextcord.ui.button(label="⏪", style=nextcord.ButtonStyle.primary)
+    @nextcord.ui.button(label="⏪", style=nextcord.ButtonStyle.green)
     async def previous_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         self.current_index -= 1
         if self.current_index < 0:
             self.current_index = 0  # Prevent going below the first entry
         await self.update_embed(interaction)
   
-    @nextcord.ui.button(label="⏩", style=nextcord.ButtonStyle.primary)
+    @nextcord.ui.button(label="⏩", style=nextcord.ButtonStyle.green)
     async def next_button(self, button: nextcord.ui.Button, interaction: nextcord.Interaction):
         self.current_index += 1
         if self.current_index >= len(self.entries):
@@ -425,11 +425,11 @@ class Whitelists(commands.Cog):
     async def view_my_whitelists(self, interaction: nextcord.Interaction):
         user_id = interaction.user.id
         claims = await retrieve_all_claims_for_user(user_id)
-        
+
         if not claims:
-            await interaction.response.send_message("You have no whitelist claims.", ephemeral=True)
+            await interaction.response.send_message("You have no whitelist claims.", ephemeral=True, delete_after=300)  # 5 minutes
             return
-    
+
         detailed_claims = []
         for claim in claims:
             guild_id = claim['guild_id']
@@ -437,10 +437,10 @@ class Whitelists(commands.Cog):
             whitelist_detail = await retrieve_whitelist_entry_by_id(guild_id, wl_id)
             if whitelist_detail:
                 detailed_claims.append((claim, whitelist_detail))
-    
+
         first_embed = await self.create_whitelist_embed(*detailed_claims[0])
         view = WhitelistView(detailed_claims, self.create_whitelist_embed)
-        await interaction.response.send_message(embed=first_embed, view=view)
+        await interaction.response.send_message(embed=first_embed, view=view, delete_after=300)  # 5 minutes
 
 
 def setup(bot):

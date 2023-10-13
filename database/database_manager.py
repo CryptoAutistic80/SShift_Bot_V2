@@ -100,7 +100,7 @@ async def initialize_db():
                     UNIQUE (WL_ID, user_id)
                 );
             """)
-
+ 
 
 
             await db.commit()
@@ -548,3 +548,30 @@ async def retrieve_all_claims_for_user(user_id):
             claims.append(claim_dict)
 
         return claims
+
+
+async def fetch_user_entries_for_wl(guild_id, WL_ID):
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.cursor()
+        await cursor.execute("""
+            SELECT whitelist_claims.*, whitelist.wl_name 
+            FROM whitelist_claims 
+            JOIN whitelist ON whitelist_claims.WL_ID = whitelist.WL_ID 
+            WHERE whitelist_claims.guild_id = ? AND whitelist_claims.WL_ID = ?
+        """, (guild_id, WL_ID))
+        user_entries = await cursor.fetchall()
+        if user_entries:
+            results = []
+            for entry in user_entries:
+                results.append({
+                    "claim_id": entry[0],
+                    "WL_ID": entry[1],
+                    "guild_id": entry[2],
+                    "user_id": entry[3],
+                    "user_roles": entry[4],
+                    "address": entry[5],
+                    "no_mints": entry[6],
+                    "wl_name": entry[7]  # wl_name is now included
+                })
+            return results
+        return None
