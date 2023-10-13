@@ -554,7 +554,7 @@ async def fetch_user_entries_for_wl(guild_id, WL_ID):
     async with aiosqlite.connect(db_path) as db:
         cursor = await db.cursor()
         await cursor.execute("""
-            SELECT whitelist_claims.*, whitelist.wl_name 
+            SELECT whitelist_claims.*, whitelist.wl_name, whitelist.type  -- Assuming type is in the whitelist table
             FROM whitelist_claims 
             JOIN whitelist ON whitelist_claims.WL_ID = whitelist.WL_ID 
             WHERE whitelist_claims.guild_id = ? AND whitelist_claims.WL_ID = ?
@@ -571,7 +571,9 @@ async def fetch_user_entries_for_wl(guild_id, WL_ID):
                     "user_roles": entry[4],
                     "address": entry[5],
                     "no_mints": entry[6],
-                    "wl_name": entry[7]  # wl_name is now included
+                    "wl_name": entry[7],  # wl_name is now included
+                    "type": entry[8]  # type is now included
                 })
             return results
         return None
+

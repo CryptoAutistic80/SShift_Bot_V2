@@ -62,7 +62,7 @@ class Admin(commands.Cog):
         # Get the current guild id
         guild_id = inter.guild.id
 
-        # Call the function to fetch user entries for the specified WL_ID
+        # Call the function to fetch user entries for the specified wl_id
         user_entries = await fetch_user_entries_for_wl(guild_id, wl_id)
 
         # Check if any entries were found
@@ -71,8 +71,15 @@ class Admin(commands.Cog):
             file_name = f'wl_{wl_id}_{guild_id}.csv'
             with open(file_name, mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
-                # Write header row
-                writer.writerow(['User', 'Roles', 'Address', 'Number of Mints'])
+
+                # Determine the type from the first entry (assuming all entries are of the same type)
+                entry_type = user_entries[0]['type']
+
+                # Write header row based on the type
+                if entry_type == 'TOKEN':
+                    writer.writerow(['User', 'Roles', 'Address'])
+                else:
+                    writer.writerow(['User', 'Roles', 'Address', 'Number of Mints'])
 
                 # Process each entry and write to CSV
                 for entry in user_entries:
@@ -92,17 +99,20 @@ class Admin(commands.Cog):
                     roles = ','.join(role_names)
 
                     address = entry['address']
-                    no_mints = entry['no_mints']
-                    writer.writerow([user_name, roles, address, no_mints])  # Write data rows
+
+                    if entry_type == 'TOKEN':
+                        writer.writerow([user_name, roles, address])  # Write data rows for TOKEN
+                    else:
+                        no_mints = 'Unlimited' if entry['no_mints'] == -1 else entry['no_mints']
+                        writer.writerow([user_name, roles, address, no_mints])  # Write data rows for NFT
 
             # Upload the file to Discord
             with open(file_name, 'rb') as file:
                 await inter.response.send_message('Here is the requested data:', file=nextcord.File(file, file_name))
         else:
-            await inter.response.send_message(f'No user entries found for WL_ID {wl_id}.')
+            await inter.response.send_message(f'No user entries found for wl_id {wl_id}.')
 
 
-  
     @nextcord.slash_command()
     async def setup(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)

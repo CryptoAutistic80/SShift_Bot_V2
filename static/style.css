@@ -1,10 +1,38 @@
+.banner {
+  background-color: rgba(173, 216, 230, 0.50);
+  padding: 20px;
+  font-size: 24px;
+  font-family: 'Courier New', monospace;
+  position: relative;
+  overflow: hidden;
+}
+
+.fade-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to right, rgba(173, 216, 230, 0.75) 0%, transparent 10%, transparent 90%, rgba(173, 216, 230, 0.75) 100%);
+  pointer-events: none;
+}
+
 .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 80px);
+  background: url('Page Media/background.png') no-repeat center center/cover;
+}
+
+.left-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: url('Page Media/background.png') no-repeat center center/cover;
+}
+
+.bot-image, .add-button, .text-box {
+  margin: 0 20px;
 }
 
 .bot-image {
@@ -15,11 +43,23 @@
 }
 
 .add-button {
-  margin-top: 20px;
   padding: 10px 20px;
   background-color: #7289da;
   color: white;
   text-decoration: none;
   border-radius: 5px;
   border: 1px solid black;
+  margin-top: 10px;
+}
+
+.text-box {
+  background-color: rgba(255,255,255,0.9);
+  padding: 30px;
+  border-radius: 10px;
+  width: 400px;
+  height: 300px;
+  overflow-y: auto;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+  line-height: 1.6;
 }
