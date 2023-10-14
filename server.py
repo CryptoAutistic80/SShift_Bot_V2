@@ -1,19 +1,15 @@
-from flask import Flask, send_from_directory
+from flask import Flask, render_template
 from threading import Thread
 
 app = Flask(__name__, static_folder='static')
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return render_template('index.html')
 
-@app.route('/style.css')
-def serve_style():
-    return send_from_directory('static', 'style.css')
-
-@app.route('/Page Media/bot_pfp.gif')
-def serve_gif():
-    return send_from_directory('static/Page Media', 'bot_pfp.gif')
+@app.route('/members')
+def members():
+    return render_template('members.html')
 
 def run():
     app.run(host="0.0.0.0", port=8080)
@@ -21,3 +17,6 @@ def run():
 def start_server():
     t = Thread(target=run)
     t.start()
+
+if __name__ == '__main__':
+    start_server()

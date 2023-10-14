@@ -385,6 +385,7 @@ class Admin(commands.Cog):
     
         await inter.response.send_message('Reset command invoked. Use subcommands to perform specific reset operations.')
 
+
     @reset.subcommand()
     @commands.has_permissions(administrator=True)
     async def role_reactions(self, inter):

@@ -10,12 +10,12 @@ async def initialize_db():
           
             #Check if the whitelist_claims table exists and drop it
             #await cursor.execute("""
-                #DROP TABLE IF EXISTS whitelist_claims;
+                #DROP TABLE IF EXISTS translations;
             #""")
           
             #Check if the whitelist table exists and drop it
             #await cursor.execute("""
-                #DROP TABLE IF EXISTS whitelist;
+                #DROP TABLE IF EXISTS translation_settings;
             #""")
             
             # Table for guild memberships
@@ -100,13 +100,11 @@ async def initialize_db():
                     UNIQUE (WL_ID, user_id)
                 );
             """)
- 
 
 
             await db.commit()
     except aiosqlite.Error as e:
         print(f"Database error: {e}")
-
 
 
 #####################
