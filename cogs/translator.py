@@ -101,30 +101,30 @@ class Translator(commands.Cog):
           
     @commands.command(name="view", help="View the translation for a replied message")
     async def view_translation(self, ctx):
-        """View the translation for a replied message using traditional command"""
+         """View the translation for a replied message using traditional command"""
   
-        # Ensure the command is used in a guild
-        if not ctx.guild:
-            await ctx.send("This command can only be used in a guild.")
-            return
+         # Ensure the command is used in a guild
+         if not ctx.guild:
+             await ctx.send("This command can only be used in a guild.")
+             return
   
-        try:
-            # Check if the context is in reply to an existing message
-            if ctx.message.reference:
-                original_message_id = ctx.message.reference.message_id
+         try:
+             # Check if the context is in reply to an existing message
+             if ctx.message.reference:
+                 original_message_id = ctx.message.reference.message_id
   
-                # Fetch the translation from the database
-                translation = await retrieve_translation(ctx.guild.id, str(original_message_id))
+                 # Fetch the translation from the database
+                 translation = await retrieve_translation(ctx.guild.id, str(original_message_id))
   
-                # If a translation exists, send it
-                if translation:
-                    await ctx.send(translation)
-                else:
-                    await ctx.send(f"No translation found for message ID {original_message_id}")
-            else:
-                await ctx.send("Please reply to a message to view its translation.")
-        except Exception as e:
-            await ctx.send("An error occurred. Please try again later.")
+                 # If a translation exists, send it
+                 if translation:
+                     await ctx.send(f'Translation: {translation}', delete_after=15)  # The message will self-delete after 15 seconds
+                 else:
+                     await ctx.send(f"No translation found for message ID {original_message_id}", delete_after=15)  # The message will self-delete after 15 seconds
+             else:
+                 await ctx.send("Please reply to a message to view its translation.", delete_after=15)  # The message will self-delete after 15 seconds
+         except Exception as e:
+             await ctx.send("An error occurred. Please try again later.", delete_after=15)  # The message will self-delete after 15 seconds
 
 
     @nextcord.slash_command(name="reply", description="Reply to a user's last message.")
@@ -227,6 +227,30 @@ class Translator(commands.Cog):
         except Exception as e:
             print(f"Error executing !reply command: {e}")
             await ctx.send("An error occurred. Please try again later.")
+
+
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        if reaction.emoji == '🌎' and not user.bot:
+            # Assume the reaction is on a message in a TextChannel
+            message = reaction.message
+            guild_id = message.guild.id
+            original_message_id = message.id
+
+            # Fetch the translation from the database
+            translation = await retrieve_translation(guild_id, str(original_message_id))
+
+            if translation:
+                # Send the translation as a message
+                await message.channel.send(
+                    f'Translation: {translation}',
+                    delete_after=15  # The message will self-delete after 15 seconds
+                )
+
+                # Remove the user's reaction
+                await reaction.remove(user)
+            else:
+                print(f"No translation found for message ID {original_message_id}")
 
 
 def setup(client):
