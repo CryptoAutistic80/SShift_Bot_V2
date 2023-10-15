@@ -101,8 +101,123 @@ async def initialize_db():
                 );
             """)
 
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS translate_settings (
+                    guild_id TEXT PRIMARY KEY NOT NULL,
+                    base_language TEXT,
+                    channel_1 TEXT,
+                    channel_2 TEXT,
+                    channel_3 TEXT,
+                    FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
+                );
+            """)
+
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS translations (
+                    guild_id TEXT NOT NULL,
+                    translation TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    original_message_id TEXT NOT NULL UNIQUE,
+                    PRIMARY KEY (guild_id, original_message_id),
+                    FOREIGN KEY (guild_id) REFERENCES guild_memberships(guild_id)
+                );
+            """)
+
 
             await db.commit()
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+
+######################
+# TRANSLATION TABLES #
+######################
+
+async def add_replace_translation_settings(guild_id, channel_1, channel_2, channel_3, base_language=None):
+    """Insert or update translation settings for a guild."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("""
+                INSERT INTO translate_settings (guild_id, channel_1, channel_2, channel_3, base_language)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT (guild_id)
+                DO UPDATE SET channel_1 = excluded.channel_1, channel_2 = excluded.channel_2, channel_3 = excluded.channel_3, base_language = excluded.base_language;
+            """, (guild_id, channel_1, channel_2, channel_3, base_language))
+            await db.commit()
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+async def delete_translation_settings(guild_id):
+    """Delete translation settings for a guild."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("""
+                DELETE FROM translate_settings WHERE guild_id = ?;
+            """, (guild_id,))
+            await db.commit()
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+async def retrieve_translation_settings(guild_id):
+    """Retrieve translation settings for a guild."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("""
+                SELECT channel_1, channel_2, channel_3, base_language FROM translate_settings WHERE guild_id = ?;
+            """, (guild_id,))
+            row = await cursor.fetchone()
+            if row:
+                return row
+            else:
+                return None
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+
+async def insert_translation(guild_id, translation, original_message_id):
+    """Insert a new translation into the database."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute(
+                "INSERT OR REPLACE INTO translations (guild_id, translation, original_message_id) VALUES (?, ?, ?)", 
+                (guild_id, translation, original_message_id))
+            await db.commit()
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+async def retrieve_translation(guild_id, original_message_id):
+    """Retrieve a translation from the database based on the guild_id and original_message_id."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT translation FROM translations WHERE guild_id = ? AND original_message_id = ?", (guild_id, original_message_id))
+            translation = await cursor.fetchone()
+            return translation[0] if translation else None
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+async def delete_old_translations(guild_id, hours=12):
+    """Delete translations that are older than the specified number of hours for a given guild."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("DELETE FROM translations WHERE guild_id = ? AND timestamp < datetime('now', '-{} hours')".format(hours), (guild_id,))
+            await db.commit()
+    except aiosqlite.Error as e:
+        print(f"Database error: {e}")
+
+async def retrieve_all_translations(guild_id):
+    """Retrieve all translations for a specific guild_id from the database."""
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT original_message_id, translation FROM translations WHERE guild_id = ?", (guild_id,))
+            translations = await cursor.fetchall()
+            return translations if translations else None
     except aiosqlite.Error as e:
         print(f"Database error: {e}")
 

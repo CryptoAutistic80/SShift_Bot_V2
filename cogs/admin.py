@@ -22,6 +22,8 @@ from database.database_manager import (
     upsert_reaction,
     upsert_welcome_message,
     fetch_user_entries_for_wl,
+    add_replace_translation_settings,
+    delete_translation_settings,
 )
 
 
@@ -121,6 +123,33 @@ class Admin(commands.Cog):
             return
         
         await inter.response.send_message('Setup command invoked')
+      
+      
+    @setup.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def translation_channels(self, inter, channel_1: nextcord.TextChannel, channel_2: Optional[nextcord.TextChannel] = None, channel_3: Optional[nextcord.TextChannel] = None):
+        guild_id = inter.guild.id
+
+        # Ensure at least one channel is provided
+        if channel_1 is None:
+            await inter.response.send_message('You must provide at least one channel.')
+            return
+
+        # Call the function to add or replace translation settings
+        await add_replace_translation_settings(
+            guild_id,
+            channel_1.id,
+            channel_2.id if channel_2 else None,
+            channel_3.id if channel_3 else None
+        )
+
+        # Update the channels_to_listen in the Translator cog
+        translator_cog = self.bot.get_cog('Translator')
+        if translator_cog:
+            await translator_cog.update_channels_to_listen()
+
+        await inter.response.send_message('Translation channels setup updated successfully.')
+      
 
     @setup.subcommand()
     @commands.has_permissions(administrator=True)
@@ -384,6 +413,21 @@ class Admin(commands.Cog):
             return
     
         await inter.response.send_message('Reset command invoked. Use subcommands to perform specific reset operations.')
+
+    @reset.subcommand()
+    @commands.has_permissions(administrator=True)
+    async def translation_settings(self, inter):
+        guild_id = inter.guild.id
+
+        # Call the function to delete translation settings
+        await delete_translation_settings(guild_id)
+        
+        # Update the channels_to_listen in the Translator cog
+        translator_cog = self.bot.get_cog('Translator')
+        if translator_cog:
+            await translator_cog.update_channels_to_listen()
+
+        await inter.response.send_message('Translation settings deleted successfully.')
 
 
     @reset.subcommand()
