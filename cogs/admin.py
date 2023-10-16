@@ -44,9 +44,10 @@ BLOCKCHAIN_CHOICES = {
 #Define membership types
 MEMBERSHIP_TYPE_CHOICES = {
     "Free": "free",
-    "Free Trial": "free_trial",
+    "Free Trial": "free trial",
     "Premium": "premium"
 }
+
 
 
 class Admin(commands.Cog):
@@ -56,45 +57,6 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Admin cog ready")
-
-
-    @nextcord.slash_command(name="owner", description="Root command for owner operations.")
-    @commands.is_owner()
-    async def owner(self, inter):
-        await inter.response.send_message('Owner command invoked')
-
-    @owner.subcommand()
-    async def upgrade_member(
-            self, inter: nextcord.Interaction,
-            guild_id: str = nextcord.SlashOption(description="Enter the guild id"),
-            membership_type: str = nextcord.SlashOption(choices=MEMBERSHIP_TYPE_CHOICES, description="Select the membership type"),
-            days: int = nextcord.SlashOption(description="Enter the number of days")
-    ):
-        # Convert days to timestamp string for expiration
-        expiration_timestamp = str(int(datetime.datetime.now().timestamp()) + days * 86400)
-
-        # Call edit_guild from database_manager
-        await edit_guild(guild_id, membership_type, expiration_timestamp)
-
-        await inter.response.send_message(f'Membership for guild {guild_id} upgraded to {membership_type} for {days} days.')
-
-
-    @owner.subcommand()
-    async def reset_translation_channels(self, inter: nextcord.Interaction):
-        failed_guilds = []  # Keep track of guilds where deletion failed
-        for guild in self.bot.guilds:
-            guild_id = guild.id
-            try:
-                await delete_translation_settings(guild_id)
-            except Exception as e:
-                print(f"Error deleting translation settings for guild {guild_id}: {e}")
-                failed_guilds.append(guild_id)
-
-        if failed_guilds:
-            await inter.response.send_message(f'Failed to reset translation channels settings for guild(s): {", ".join(map(str, failed_guilds))}.')
-        else:
-            await inter.response.send_message('Translation channels settings reset for all guilds successfully.')
-      
       
 
     @nextcord.slash_command(name="admin", description="Root command for admin operations.")
@@ -180,8 +142,8 @@ class Admin(commands.Cog):
 
         # Check membership type
         membership_details = await retrieve_guild_membership(guild_id)
-        if not membership_details or membership_details.get('membership_type') != 'premium':
-            await inter.response.send_message('This command can only be used if the membership type is premium.')
+        if not membership_details or membership_details.get('membership_type') not in ['premium', 'free trial']:
+            await inter.response.send_message('This command can only be used if the membership type is premium or free trial.')
             return
 
         # Ensure at least one channel is provided

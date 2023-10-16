@@ -123,7 +123,7 @@ class Translator(commands.Cog):
                     model=GPT_MODEL,
                     messages=chat_message,
                     temperature=0.2,
-                    max_tokens=500,
+                    max_tokens=1000,
                     frequency_penalty=0.0
                 )
                 translation = response['choices'][0]['message']['content'].strip()
@@ -207,7 +207,7 @@ class Translator(commands.Cog):
                     model=GPT_MODEL,
                     messages=chat_message,
                     temperature=0.2,
-                    max_tokens=500,
+                    max_tokens=1000,
                     frequency_penalty=0.0
                 )
                 translation = response['choices'][0]['message']['content'].strip()
