@@ -24,6 +24,7 @@ from database.database_manager import (
     fetch_user_entries_for_wl,
     add_replace_translation_settings,
     delete_translation_settings,
+    edit_guild,
 )
 
 
@@ -39,6 +40,13 @@ BLOCKCHAIN_CHOICES = {
     "Solana": "SOLANA"
 }
 
+#Define membership types
+MEMBERSHIP_TYPE_CHOICES = {
+    "Free": "free",
+    "Free Trial": "free_trial",
+    "Premium": "premium"
+}
+
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -47,6 +55,28 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Admin cog ready")
+
+
+    @nextcord.slash_command(name="owner", description="Root command for owner operations.")
+    @commands.is_owner()
+    async def owner(self, inter):
+        await inter.response.send_message('Owner command invoked')
+
+    @owner.subcommand()
+    async def upgrade_member(
+            self, inter: nextcord.Interaction,
+            guild_id: str = nextcord.SlashOption(description="Enter the guild id"),
+            membership_type: str = nextcord.SlashOption(choices=MEMBERSHIP_TYPE_CHOICES, description="Select the membership type"),
+            days: int = nextcord.SlashOption(description="Enter the number of days")
+    ):
+        # Convert days to timestamp string for expiration
+        expiration_timestamp = str(int(datetime.datetime.now().timestamp()) + days * 86400)
+
+        # Call edit_guild from database_manager
+        await edit_guild(guild_id, membership_type, expiration_timestamp)
+
+        await inter.response.send_message(f'Membership for guild {guild_id} upgraded to {membership_type} for {days} days.')
+      
       
 
     @nextcord.slash_command(name="admin", description="Root command for admin operations.")

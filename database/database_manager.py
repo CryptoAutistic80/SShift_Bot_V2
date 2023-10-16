@@ -200,7 +200,7 @@ async def retrieve_translation(guild_id, original_message_id):
     except aiosqlite.Error as e:
         print(f"Database error: {e}")
 
-async def delete_old_translations(guild_id, hours=12):
+async def delete_old_translations(guild_id, hours=24):
     """Delete translations that are older than the specified number of hours for a given guild."""
     try:
         async with aiosqlite.connect(db_path) as db:
@@ -266,17 +266,41 @@ async def remove_guild(guild_id):
     except aiosqlite.Error as e:
         return f"Database error: {e}"
 
-async def edit_guild(guild_id, membership_type, expiry_date):
-    """Update an existing guild membership's details based on the guild_id."""
+async def edit_guild(guild_id, membership_type=None, expiry_date=None):
+    """Edit an existing guild membership in the database or return an error if it doesn't exist."""
     try:
         async with aiosqlite.connect(db_path) as db:
             cursor = await db.cursor()
-            await cursor.execute(
-                "UPDATE guild_memberships SET membership_type = ?, expiry_date = ? WHERE guild_id = ?", 
-                (membership_type, expiry_date, guild_id))
+
+            # Check if the guild_id exists in the database
+            await cursor.execute("SELECT 1 FROM guild_memberships WHERE guild_id = ?", (guild_id,))
+            existing_guild = await cursor.fetchone()
+
+            if not existing_guild:
+                return "Guild does not exist in the database"
+
+            # Prepare the SQL update query and values based on the provided arguments
+            update_columns = []
+            values = []
+            if membership_type is not None:
+                update_columns.append("membership_type = ?")
+                values.append(membership_type)
+            if expiry_date is not None:
+                update_columns.append("expiry_date = ?")
+                values.append(expiry_date)
+            if not update_columns:
+                return "No updates specified"
+
+            update_query = f"UPDATE guild_memberships SET {', '.join(update_columns)} WHERE guild_id = ?"
+            values.append(guild_id)
+
+            # Execute the update query
+            await cursor.execute(update_query, values)
             await db.commit()
+
+            return "Guild successfully updated in the database"
     except aiosqlite.Error as e:
-        print(f"Database error: {e}")
+        return f"Database error: {e}"
 
 async def retrieve_guild_membership(guild_id):
     """Retrieve all guild membership details from the database based on the guild_id."""

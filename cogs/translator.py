@@ -1,3 +1,5 @@
+import re
+import logging
 import nextcord
 from nextcord.ext import commands
 from langdetect import detect, LangDetectException
@@ -5,13 +7,60 @@ from database.database_manager import retrieve_translation_settings, insert_tran
 from main import GPT_MODEL
 import openai
 
+def preprocess_message(text):
+    try:
+        # Remove mentions
+        cleaned_text = re.sub(r'@\\w+', '', text)
+        return cleaned_text.strip()
+    except Exception as e:
+        logging.error(f"Error in preprocess_message: {e}")
+        return text
+
 def should_translate(message):
-    if message.content.startswith(('!', '/')):
-        return False
+    text = message.content
+    
     if message.reference:
         return False
-    if len(message.content.split()) < 4:
+    
+    cleaned_text = preprocess_message(text)
+    
+    # Checking if cleaned_text is empty or contains specific strings
+    if not cleaned_text or cleaned_text in ['!fetch', '!reply']:
         return False
+
+    if cleaned_text.startswith('!reply '):
+        return False
+    
+    # Check for non-Latin scripts
+    non_latin_patterns = [
+        r'[\u0600-ۿ]',  # Arabic
+        r'[ঀ-\u09ff]',  # Bengali
+        r'[一-\u9fff𠀀-\U0002a6df]',  # Chinese
+        r'[Ѐ-ӿ]',  # Cyrillic
+        r'[ऀ-ॿ]',  # Devanagari
+        r'[Ͱ-Ͽ]',  # Greek
+        r'[\u0a80-૿]',  # Gujarati
+        r'[\u0a00-\u0a7f]',  # Gurmukhi
+        r'[\u0590-\u05ff]',  # Hebrew
+        r'[\u3040-ヿ㐀-\u4dbf]',  # Japanese
+        r'[ಀ-\u0cff]',  # Kannada
+        r'[가-\ud7af]',  # Korean
+        r'[ഀ-ൿ]',  # Malayalam
+        r'[\u0b00-\u0b7f]',  # Oriya (Odia)
+        r'[\u0d80-\u0dff]',  # Sinhala
+        r'[\u0b80-\u0bff]',  # Tamil
+        r'[ఀ-౿]',  # Telugu
+        r'[\u0e00-\u0e7f]',  # Thai
+        r'[ༀ-\u0fff]',   # Tibetan
+        r'[\u1400-\u167F]'  # Inuktitut
+    ]
+    for pattern in non_latin_patterns:
+        if re.search(pattern, cleaned_text):
+            return True
+    
+    if len(cleaned_text.split()) < 4:
+        return False
+
     return True
 
 def detect_language(text):
@@ -57,7 +106,7 @@ class Translator(commands.Cog):
         if (not message.author.bot and 
             guild_id in self.channels_to_listen and 
             channel_id_str in self.channels_to_listen[guild_id] and 
-            should_translate(message)):
+            should_translate(message)):  # Adjusted this line to pass message object
             
             lang = detect_language(message.content)
             if lang and lang != 'en':
@@ -80,7 +129,7 @@ class Translator(commands.Cog):
                 translation = response['choices'][0]['message']['content'].strip()
                 await insert_translation(guild_id, translation, str(message.id))  # Insert translation into the database
     
-                await message.add_reaction('🌎')  # React with a globe emoji after translation has been inserted
+                await message.add_reaction('🌎')
 
     @nextcord.message_command(name="TRANSLATION")
     async def fetch_translation(self, interaction: nextcord.Interaction, target_message: nextcord.Message):
@@ -118,64 +167,13 @@ class Translator(commands.Cog):
   
                  # If a translation exists, send it
                  if translation:
-                     await ctx.send(f'Translation: {translation}', delete_after=15)  # The message will self-delete after 15 seconds
+                     await ctx.send(f'Translation: {translation}')
                  else:
-                     await ctx.send(f"No translation found for message ID {original_message_id}", delete_after=15)  # The message will self-delete after 15 seconds
+                     await ctx.send(f"No translation found for message ID {original_message_id}", delete_after=2.5)  # The message will self-delete after 15 seconds
              else:
-                 await ctx.send("Please reply to a message to view its translation.", delete_after=15)  # The message will self-delete after 15 seconds
+                 await ctx.send("Please reply to a message to view its translation.", delete_after=2.5)  # The message will self-delete after 15 seconds
          except Exception as e:
-             await ctx.send("An error occurred. Please try again later.", delete_after=15)  # The message will self-delete after 15 seconds
-
-
-    @nextcord.slash_command(name="reply", description="Reply to a user's last message.")
-    async def reply(self, interaction: nextcord.Interaction, user: nextcord.Member, text: str):
-        try:
-            await interaction.response.defer()  # Defer the initial response
-    
-            # Ensure the command is used in a TextChannel
-            if isinstance(interaction.channel, nextcord.TextChannel):
-                messages = await interaction.channel.history(limit=50).flatten()
-                user_message = None
-                for msg in messages:
-                    if msg.author == user:
-                        user_message = msg
-                        break
-    
-                if not user_message:
-                    await interaction.followup.send("Couldn't find a recent message from the selected user.")
-                    return
-    
-                original_content = user_message.content
-                system_prompt = (
-                    "Translate the reply to match the language and style of the original message."
-                )
-                chat_message = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Original message: '{original_content}'. Reply: '{text}'."}
-                ]
-    
-                response = openai.ChatCompletion.create(
-                    model=GPT_MODEL,
-                    messages=chat_message,
-                    temperature=0.2,
-                    max_tokens=500,
-                    frequency_penalty=0.0
-                )
-                translation = response['choices'][0]['message']['content'].strip()
-    
-                if interaction.user is not None:
-                    response_message = f"{interaction.user.mention} replied:\n\n**Original:** {text}\n\n**Translation:** {translation}"
-                    await interaction.followup.send(response_message)  # Use followup.send to send the final response
-                else:
-                    await interaction.followup.send("An error occurred while processing your request.")
-    
-            else:
-                await interaction.followup.send("This command can only be used in text channels.")
-                return
-    
-        except Exception as e:
-            print(f"Error executing /reply command: {e}")
-            await interaction.followup.send("An error occurred while processing your request.")
+             await ctx.send("An error occurred. Please try again later.", delete_after=2.5)  # The message will self-delete after 15 seconds
 
 
     @commands.command(name="reply", help="Translate your reply to the language of the original message")
@@ -230,27 +228,25 @@ class Translator(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        if reaction.emoji == '🌎' and not user.bot:
-            # Assume the reaction is on a message in a TextChannel
-            message = reaction.message
-            guild_id = message.guild.id
-            original_message_id = message.id
+    async def on_raw_reaction_add(self, payload):
+        if payload.emoji.name == '🌎' and not payload.member.bot:
+           channel = self.client.get_channel(payload.channel_id)
+           message = await channel.fetch_message(payload.message_id)
+           guild_id = payload.guild_id
+           original_message_id = payload.message_id
 
-            # Fetch the translation from the database
-            translation = await retrieve_translation(guild_id, str(original_message_id))
+           # Fetch the translation from the database
+           translation = await retrieve_translation(guild_id, str(original_message_id))
 
-            if translation:
-                # Send the translation as a message
-                await message.channel.send(
-                    f'Translation: {translation}',
-                    delete_after=15  # The message will self-delete after 15 seconds
-                )
+           if translation:
+               # Send the translation as a message
+               await channel.send(f'Translation: {translation}', delete_after=7.5)
+           else:
+               # Notify the user if no translation is found
+               await channel.send(f"No translation found for message ID {original_message_id}", delete_after=2.5)
 
-                # Remove the user's reaction
-                await reaction.remove(user)
-            else:
-                print(f"No translation found for message ID {original_message_id}")
+           # Remove the user's reaction
+           await message.remove_reaction(payload.emoji, payload.member)
 
 
 def setup(client):
