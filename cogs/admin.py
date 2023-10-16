@@ -25,6 +25,7 @@ from database.database_manager import (
     add_replace_translation_settings,
     delete_translation_settings,
     edit_guild,
+    retrieve_guild_membership,
 )
 
 
@@ -76,6 +77,23 @@ class Admin(commands.Cog):
         await edit_guild(guild_id, membership_type, expiration_timestamp)
 
         await inter.response.send_message(f'Membership for guild {guild_id} upgraded to {membership_type} for {days} days.')
+
+
+    @owner.subcommand()
+    async def reset_translation_channels(self, inter: nextcord.Interaction):
+        failed_guilds = []  # Keep track of guilds where deletion failed
+        for guild in self.bot.guilds:
+            guild_id = guild.id
+            try:
+                await delete_translation_settings(guild_id)
+            except Exception as e:
+                print(f"Error deleting translation settings for guild {guild_id}: {e}")
+                failed_guilds.append(guild_id)
+
+        if failed_guilds:
+            await inter.response.send_message(f'Failed to reset translation channels settings for guild(s): {", ".join(map(str, failed_guilds))}.')
+        else:
+            await inter.response.send_message('Translation channels settings reset for all guilds successfully.')
       
       
 
@@ -159,6 +177,12 @@ class Admin(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def translation_channels(self, inter, channel_1: nextcord.TextChannel, channel_2: Optional[nextcord.TextChannel] = None, channel_3: Optional[nextcord.TextChannel] = None):
         guild_id = inter.guild.id
+
+        # Check membership type
+        membership_details = await retrieve_guild_membership(guild_id)
+        if not membership_details or membership_details.get('membership_type') != 'premium':
+            await inter.response.send_message('This command can only be used if the membership type is premium.')
+            return
 
         # Ensure at least one channel is provided
         if channel_1 is None:
