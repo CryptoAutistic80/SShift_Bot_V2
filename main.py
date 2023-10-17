@@ -70,7 +70,7 @@ async def on_guild_join(guild):
 async def on_application_command_error(interaction, error):
     if isinstance(error, application_checks.ApplicationMissingPermissions):
         await interaction.response.send_message(
-            "Whoooa let’s set some boundaries, you’re not an administrator…",
+            "Whoooa let’s set some boundaries, you don't have permission to touch me there sorry",
             ephemeral=True
         )
 
