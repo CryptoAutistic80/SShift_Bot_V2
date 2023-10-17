@@ -145,7 +145,7 @@ class Admin(commands.Cog):
         # Check membership type
         membership_details = await retrieve_guild_membership(guild_id)
         if not membership_details or membership_details.get('membership_type') not in ['premium', 'free trial']:
-            await inter.response.send_message('This command can only be used if the membership type is premium or free trial.')
+            await inter.response.send_message('This command can only be used with premium or free trial membership, please visit our discord server to request an upgrade: https://discord.gg/agDc2VDSaH')
             return
 
         # Ensure at least one channel is provided

@@ -441,7 +441,25 @@ class Whitelists(commands.Cog):
         first_embed = await self.create_whitelist_embed(*detailed_claims[0])
         view = WhitelistView(detailed_claims, self.create_whitelist_embed)
         await interaction.response.send_message(embed=first_embed, view=view, delete_after=300)  # 5 minutes
+      
+
+    @commands.Cog.listener()
+    async def on_message(self, message: nextcord.Message):
+        # Skip if the message is from a bot
+        if message.author.bot:
+            return
+
+        # Get the guild ID and channel ID
+        guild_id = str(message.guild.id) if message.guild else None
+        channel_id = message.channel.id if message.channel else None
+
+        # Check if the channel is one of the allowed channels for the guild
+        if guild_id and channel_id and self.guild_channel_ids.get(guild_id):
+            if channel_id in [int(ch) for ch in self.guild_channel_ids.get(guild_id, [])]:
+                # Check if the message does not start with '/claim'
+                if not message.content.startswith('/claim'):
+                    await message.delete()
 
 
 def setup(bot):
-    bot.add_cog(Whitelists(bot))
+    bot.add_cog(Whitelists(bot)) 
