@@ -6,7 +6,8 @@ import csv
 from typing import Annotated, Optional
 
 import nextcord
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
+from nextcord.ext.application_checks import has_permissions
 from nextcord.ui import Button, View
 
 from database.database_manager import (
@@ -57,9 +58,9 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Admin cog ready")
-      
-
+    
     @nextcord.slash_command(name="admin", description="Root command for admin operations.")
+    @application_checks.has_permissions(administrator=True)
     async def admin(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
         if guild_membership is None:
@@ -69,7 +70,7 @@ class Admin(commands.Cog):
         await inter.response.send_message('admin command invoked')
 
     @admin.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def fetch_sheet(self, inter: nextcord.Interaction, wl_id: int):
         # Get the current guild id
         guild_id = inter.guild.id
@@ -126,6 +127,7 @@ class Admin(commands.Cog):
 
 
     @nextcord.slash_command()
+    @application_checks.has_permissions(administrator=True)
     async def setup(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
         if guild_membership is None:
@@ -136,7 +138,7 @@ class Admin(commands.Cog):
       
       
     @setup.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def translation_channels(self, inter, channel_1: nextcord.TextChannel, channel_2: Optional[nextcord.TextChannel] = None, channel_3: Optional[nextcord.TextChannel] = None):
         guild_id = inter.guild.id
 
@@ -168,7 +170,7 @@ class Admin(commands.Cog):
       
 
     @setup.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def verification(self, inter, verify_channel: nextcord.TextChannel, verified_role: nextcord.Role):
         guild_id = inter.guild.id
     
@@ -186,7 +188,7 @@ class Admin(commands.Cog):
 
     
     @setup.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def reaction_roles(self, inter, channel: nextcord.TextChannel, role_name: str, description: str, emoji: str):
         guild_id = inter.guild.id
     
@@ -222,7 +224,7 @@ class Admin(commands.Cog):
                 await reactions_cog.load_reactions(specific_guild_id=guild_id)
 
     @setup.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def welcome(self, inter, channel: nextcord.TextChannel, message: str):
         guild_id = inter.guild.id
     
@@ -239,7 +241,7 @@ class Admin(commands.Cog):
             "Setup a token whitelist"
         )
     )
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def token_wl(
             self, inter,
             channel_mention: nextcord.TextChannel = nextcord.SlashOption(description="Mention the channel to display the whitelist claim"),
@@ -324,7 +326,7 @@ class Admin(commands.Cog):
             "Setup a NFT whitelist"
         )
     )
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def nft_wl(
             self, inter,
             channel_mention: nextcord.TextChannel = nextcord.SlashOption(description="Mention the channel to display the whitelist claim"),
@@ -340,7 +342,7 @@ class Admin(commands.Cog):
                     "Yes": "YES",
                     "No": "NO"
                 },
-                description="Select if all roles can mint"
+                description="Select YES to award mints for ALL roles, NO for primary role only"
             ),
             primary_role: nextcord.Role = nextcord.SlashOption(description="Mention the primary eligible role"),
             no_mints_primary: Optional[int] = nextcord.SlashOption(description="Enter the number of mints for primary eligible role (optional)"),
@@ -422,6 +424,7 @@ class Admin(commands.Cog):
 
 
     @nextcord.slash_command()
+    @application_checks.has_permissions(administrator=True)
     async def reset(self, inter):
         guild_membership = await retrieve_guild_membership(inter.guild.id)
         if guild_membership is None:
@@ -431,7 +434,7 @@ class Admin(commands.Cog):
         await inter.response.send_message('Reset command invoked. Use subcommands to perform specific reset operations.')
 
     @reset.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def translation_settings(self, inter):
         guild_id = inter.guild.id
 
@@ -447,7 +450,7 @@ class Admin(commands.Cog):
 
 
     @reset.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def role_reactions(self, inter):
         await inter.response.send_message("Processing role reactions reset...")  # Immediate response
     
@@ -482,7 +485,7 @@ class Admin(commands.Cog):
             await inter.followup.send("Reaction roles and corresponding roles in Discord have been reset successfully.")  # Send success message using follow-up
           
     @reset.subcommand()
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def welcomes(self, inter):
         guild_id = inter.guild.id
         
@@ -498,7 +501,7 @@ class Admin(commands.Cog):
     @reset.subcommand(
         description="Delete a whitelist entry based on type."
     )
-    @commands.has_permissions(administrator=True)
+    @application_checks.has_permissions(administrator=True)
     async def delete_whitelist(
             self, inter,
             wl_type: str = nextcord.SlashOption(

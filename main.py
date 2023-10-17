@@ -3,7 +3,7 @@ import logging.handlers
 import os
 
 import nextcord
-from nextcord.ext import commands
+from nextcord.ext import commands, application_checks
 import openai
 
 from database.database_manager import initialize_db, add_guild, remove_guild
@@ -65,6 +65,14 @@ async def on_guild_join(guild):
     # Adding guild to the database with specified parameters
     add_guild_response = await add_guild(guild_id=str(guild.id), guild_name=guild.name, membership_type="free", expiry_date=None)
     logger.info(add_guild_response)
+
+@bot.event
+async def on_application_command_error(interaction, error):
+    if isinstance(error, application_checks.ApplicationMissingPermissions):
+        await interaction.response.send_message(
+            "Whoooa let’s set some boundaries, you’re not an administrator…",
+            ephemeral=True
+        )
 
 # Load cogs
 load_cogs(bot, logger)
