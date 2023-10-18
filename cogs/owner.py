@@ -28,9 +28,14 @@ class Owner(commands.Cog):
 
     @owner.subcommand()
     @application_checks.check(check_if_it_is_me)
-    async def hello_son(self, inter: nextcord.Interaction):
-        await inter.response.send_message("Hi Dad! 👋")
+    async def gm(self, inter: nextcord.Interaction):
+        await inter.response.send_message("Morning Papa! 👋")
 
+    @owner.subcommand()
+    @application_checks.check(check_if_it_is_me)
+    async def goodnight(self, inter: nextcord.Interaction):
+        await inter.response.send_message("Gn Dad! 😴💤😴")
+  
     @owner.subcommand()
     @application_checks.check(check_if_it_is_me)
     async def upgrade_member(
