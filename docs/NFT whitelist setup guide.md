@@ -14,9 +14,7 @@ Yes, you need to have Administrator permissions in your Discord server to use th
 
 Type the following into a Discord channel where the bot is active:
 
-\`\`\`
 /setup nft_wl [arguments]
-\`\`\`
 
 Arguments are the extra bits of information that the command needs. Here's what each one means:
 
