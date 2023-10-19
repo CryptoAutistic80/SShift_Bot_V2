@@ -8,7 +8,7 @@ Are you new to Discord bots and wondering what the `fetch_sheet` command is all 
 
 To execute the `fetch_sheet` command, type:
 
-\`\`\`plaintext
+\`\`\`
 /admin fetch_sheet [wl_id]
 \`\`\`
 

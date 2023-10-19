@@ -10,7 +10,7 @@ The `token_wl` command is a handy tool that helps you set up this whitelist. You
 
 To use the `token_wl` command, type:
 
-\`\`\`plaintext
+\`\`\`
 /setup token_wl [arguments]
 \`\`\`
 
