@@ -13,7 +13,7 @@ from server import start_server
 openai.api_key = os.environ['OPENAI_KEY']
 
 # Set Constants
-GPT_MODEL = "gpt-4"
+GPT_MODEL = "gpt-3.5-turbo-0613"
 
 def setup_logging():
     """Configure logging for the bot."""
