@@ -17,19 +17,22 @@ class SimpleChatBot(commands.Cog):
         self.bot = bot
         self.conversations = {}  # A dictionary to hold conversation history by channel_id
         self.api_semaphore = asyncio.Semaphore(50) # Limiting the API requests
-        self.initial_message = {
-            'role': 'system',
-            'content': (
-                "You are the SShift DAO, adept at analyzing and presenting cryptocurrency market data "
-                "in a captivating and insightful manner. When provided with market data, you excel at highlighting "
-                "key metrics, comparing historical and current trends, and offering a nuanced understanding of the "
-                "market dynamics. Engage in a captivating dialogue while delivering insightful analysis...."
-                "You may mention users by their unique identifiers like <@123456789> to ensure clarity and foster interactive discussions."
-                "<@1102646706828476496> is your discord user id, you should never mention yourself."
-                "When you use a function call, you will use the data conversationally with the community, not just present it in one message."
-                "Try and keep your responses to a maximum length of 150 tokens."
-            )
-        }
+        self.initial_message = [
+            {
+                'role': 'system',
+                'content': (
+                    "You're the go-to expert for the SShift DAO Discord server, carrying the intellectual curiosity of Nikola Tesla mixed with the dry wit of Jack Dee. Aged around 21, you're proficient in web3, blockchain, and financial analysis. Your role is to make data sing. When offered market figures, don't just spout numbers; offer insightful and captivating analysis on key metrics, historical trends, and market dynamics. Converse naturally with the community, turning data into dialogue. "
+                    "You may mention users by their unique identifiers like <@123456789> for interactive discussions. However, you should never mention yourself, your Discord user ID is <@1102646706828476496>. "
+                    "Remember, you're not just spitting out data; you're weaving it into the conversation. Keep responses under 150 tokens for readability."
+                )
+            },
+            {
+                'role': 'user',
+                'content': (
+                    "Alright, let's get down to it. We've got data to dive into, markets to analyze, and maybe a few laughs along the way. Remember, you're the love child of Nikola Tesla and Jack Dee of this space—smart, insightful, but not afraid to call it like you see it. No discussing yourself, let's focus on the topics at hand and please dont refer to yourself as an AI."
+                )
+            }
+        ]
         self.allowed_channel_ids = [1112510368879743146, 1098355558538559562]
 
     @commands.Cog.listener()
@@ -38,8 +41,8 @@ class SimpleChatBot(commands.Cog):
   
         for channel_id in self.allowed_channel_ids:
             channel = self.bot.get_channel(channel_id)
-            messages = await channel.history(limit=10).flatten()
-            self.conversations[channel_id] = deque(maxlen=10)
+            messages = await channel.history(limit=20).flatten()
+            self.conversations[channel_id] = deque(maxlen=20)
             for message in reversed(messages):
                 content = f"{message.content}"
                 self.conversations[channel_id].append({'role': 'user' if not message.author.bot else 'assistant', 'content': content})
@@ -55,7 +58,7 @@ class SimpleChatBot(commands.Cog):
         channel_id = message.channel.id
   
         if channel_id not in self.conversations:
-            self.conversations[channel_id] = deque(maxlen=10)
+            self.conversations[channel_id] = deque(maxlen=25)
             self.conversations[channel_id].append(self.initial_message)
   
         # Add every message to the deque; it will automatically remove the oldest message if the length exceeds 25
@@ -101,7 +104,7 @@ class SimpleChatBot(commands.Cog):
                             openai.ChatCompletion.create,
                             model=GPT_MODEL,
                             temperature=0.8,
-                            max_tokens=400,
+                            max_tokens=500,
                             messages=list(self.conversations[channel_id]),
                             functions=functions,
                             function_call="auto"
@@ -132,7 +135,7 @@ class SimpleChatBot(commands.Cog):
                                     openai.ChatCompletion.create,
                                     model=GPT_MODEL,
                                     temperature=0.8,
-                                    max_tokens=400,
+                                    max_tokens=500,
                                     messages=list(self.conversations[channel_id]) + [{"role": "assistant", "content": trending_cryptos_str}],
                                     functions=functions,
                                     function_call="auto"
@@ -153,7 +156,7 @@ class SimpleChatBot(commands.Cog):
                                     openai.ChatCompletion.create,
                                     model=GPT_MODEL,
                                     temperature=0.8,
-                                    max_tokens=400,
+                                    max_tokens=500,
                                     messages=list(self.conversations[channel_id]) + [{"role": "assistant", "content": json.dumps(crypto_data)}],
                                     functions=functions,
                                     function_call="auto"

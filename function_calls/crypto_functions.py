@@ -1,27 +1,22 @@
-from warnings import resetwarnings
-from pycoingecko import CoinGeckoAPI
+import ccxt.async_support as ccxt_async
+import httpx
 import pandas as pd
 import numpy as np
-import ccxt
-import json
+import asyncio
 
-def get_crypto_data_with_indicators_binance(token_name):
-    # Initialize the ccxt binance object
-    binance = ccxt.binance()
-
-    # Load markets
-    binance.load_markets()
+async def get_crypto_data_with_indicators_binance(token_name):
+    binance = ccxt_async.binance()
+    await binance.load_markets()
 
     if binance.symbols is None:
-        return f"Failed to load market data."
+        return "Failed to load market data."
 
     symbol = f"{token_name.upper()}/USDT"
 
-    # Check if the symbol exists on Binance
     if symbol not in binance.symbols:
         return f"Token {token_name} not found."
 
-    ohlcv = binance.fetch_ohlcv(symbol, '1d', limit=144)  # Reduced limit to 144 for long-term EMA
+    ohlcv = await binance.fetch_ohlcv(symbol, '1d', limit=144)
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df.set_index('timestamp', inplace=True)
@@ -61,14 +56,18 @@ def get_crypto_data_with_indicators_binance(token_name):
             'macd_histogram': (macd_line_long - macd_line_long.ewm(span=18, adjust=False).mean()).iloc[-1],
         }
     }
+    await binance.close()
 
     print(result_data)
     return result_data
     
 
-def get_trending_cryptos():
-    cg = CoinGeckoAPI()
-    trending_data = cg.get_search_trending()
+async def get_trending_cryptos():
+    async with httpx.AsyncClient() as client:
+        response = await client.get('https://api.coingecko.com/api/v3/search/trending')
+        response.raise_for_status()
+        trending_data = response.json()
+  
     trending_coins = trending_data['coins']
     trending_list = []
     for coin in trending_coins:
