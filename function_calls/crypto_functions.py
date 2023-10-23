@@ -21,76 +21,49 @@ def get_crypto_data_with_indicators_binance(token_name):
     if symbol not in binance.symbols:
         return f"Token {token_name} not found."
 
-    ohlcv = binance.fetch_ohlcv(symbol, '1d', limit=30)
+    ohlcv = binance.fetch_ohlcv(symbol, '1d', limit=144)  # Reduced limit to 144 for long-term EMA
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df.set_index('timestamp', inplace=True)
 
-    # 7-day SMA
+    # Current Market Price
+    current_price = df['close'].iloc[-1]
+
+    # Short-Term Indicators
     sma_7_day = df['close'].rolling(window=7, min_periods=1).mean().iloc[-1]
-    # 7-day EMA
-    ema_7_day = df['close'].ewm(span=7, adjust=False).mean().iloc[-1]
-    # RSI
-    delta = df['close'].diff()
-    gain = (delta.where(delta > 0, 0))
-    loss = (-delta.where(delta < 0, 0))
-    avg_gain = gain.rolling(window=14, min_periods=1).mean()
-    avg_loss = loss.rolling(window=14, min_periods=1).mean()
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs)).iloc[-1]
+    ema_8_day = df['close'].ewm(span=8, adjust=False).mean().iloc[-1]
+    rsi_14_day = 100 - (100 / (1 + df['close'].diff().where(lambda x: x > 0, 0).rolling(window=14).mean() /
+                              df['close'].diff().where(lambda x: x < 0, 0).abs().rolling(window=14).mean())).iloc[-1]
 
-    # Fibonacci retracement levels
-    max_price = df['close'].max()
-    min_price = df['close'].min()
-    fib_levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1]
-    fib_values = {level: min_price + level * (max_price - min_price) for level in fib_levels}
+    # Long-Term Indicators
+    sma_200_day = df['close'].rolling(window=200, min_periods=1).mean().iloc[-1]  # Kept for comparison
+    ema_144_day = df['close'].ewm(span=144, adjust=False).mean().iloc[-1]  # Adjusted to 144-day
+    rsi_50_day = 100 - (100 / (1 + df['close'].diff().where(lambda x: x > 0, 0).rolling(window=50).mean() /
+                              df['close'].diff().where(lambda x: x < 0, 0).abs().rolling(window=50).mean())).iloc[-1]
 
-    # Volume Oscillator
-    short_term_vol = df['volume'].rolling(window=5).mean()
-    long_term_vol = df['volume'].rolling(window=20).mean()
-    volume_oscillator = (short_term_vol - long_term_vol) / long_term_vol
+    # Common Indicators
+    # MACD for both short-term and long-term
+    macd_line_short = df['close'].ewm(span=12, adjust=False).mean() - df['close'].ewm(span=26, adjust=False).mean()
+    macd_line_long = df['close'].ewm(span=26, adjust=False).mean() - df['close'].ewm(span=52, adjust=False).mean()
 
-    # Chaikin Money Flow (CMF)
-    high_price = df['high'].rolling(window=20).max()
-    low_price = df['low'].rolling(window=20).min()
-    cmf = ((df['close'] - low_price) - (high_price - df['close'])) / (high_price - low_price)
-    cmf = cmf.rolling(window=20).sum() / df['volume'].rolling(window=20).sum()
-
-    # Standard Deviation
-    std_dev = df['close'].rolling(window=20).std()
-
-    # Average True Range (ATR)
-    prev_close = df['close'].shift(1)
-    high_low = high_price - low_price
-    high_close = (high_price - prev_close).abs()
-    low_close = (low_price - prev_close).abs()
-    ranges = pd.concat([high_low, high_close, low_close], axis=1)
-    atr = ranges.max(axis=1).rolling(window=14).mean()
-
-    # Stochastic Oscillator
-    stoch_oscillator = 100 * (df['close'] - low_price) / (high_price - low_price)
-
-    # MACD Histogram
-    macd_line = df['close'].ewm(span=12, adjust=False).mean() - df['close'].ewm(span=26, adjust=False).mean()
-    signal_line = macd_line.ewm(span=9, adjust=False).mean()
-    macd_histogram = macd_line - signal_line
-
-    # Create a dictionary to hold the relevant data and indicators
     result_data = {
-        '7-day_sma': sma_7_day,
-        '7-day_ema': ema_7_day,
-        'rsi': rsi,
-        'fibonacci': fib_values,
-        'volume_oscillator': volume_oscillator.iloc[-1],
-        'chaikin_money_flow': cmf.iloc[-1],
-        'standard_deviation': std_dev.iloc[-1],
-        'average_true_range': atr.iloc[-1],
-        'stochastic_oscillator': stoch_oscillator.iloc[-1],
-        'macd_histogram': macd_histogram.iloc[-1]
+        'current_price': current_price,
+        'short_term': {
+            '7-day_sma': sma_7_day,
+            '8-day_ema': ema_8_day,
+            '14-day_rsi': rsi_14_day,
+            'macd_histogram': (macd_line_short - macd_line_short.ewm(span=9, adjust=False).mean()).iloc[-1],
+        },
+        'long_term': {
+            '200-day_sma': sma_200_day,  # Kept for comparison
+            '144-day_ema': ema_144_day,  # Adjusted to 144-day
+            '50-day_rsi': rsi_50_day,
+            'macd_histogram': (macd_line_long - macd_line_long.ewm(span=18, adjust=False).mean()).iloc[-1],
+        }
     }
 
-    return result_data
     print(result_data)
+    return result_data
     
 
 def get_trending_cryptos():

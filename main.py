@@ -18,7 +18,7 @@ GPT_MODEL = "gpt-3.5-turbo-0613"
 def setup_logging():
     """Configure logging for the bot."""
     logger = logging.getLogger('discord')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     handler = logging.handlers.RotatingFileHandler(filename='discord.log', encoding='utf-8', maxBytes=10**7, backupCount=5)
     console_handler = logging.StreamHandler()
