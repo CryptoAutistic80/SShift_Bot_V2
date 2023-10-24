@@ -1,0 +1,127 @@
+[
+  {
+    "name": "get_trending_cryptos",
+    "description": "Fetches a list of trending cryptocurrencies from coingecko",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_current_price",
+    "description": "Fetches the current spot market price of a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_sma_7_day",
+    "description": "Calculates the 7-day Simple Moving Average for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_ema_8_day",
+    "description": "Calculates the 8-day Exponential Moving Average for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_rsi_14_day",
+    "description": "Calculates the 14-day Relative Strength Index for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_sma_200_day",
+    "description": "Calculates the 200-day Simple Moving Average for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_ema_144_day",
+    "description": "Calculates the 144-day Exponential Moving Average for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_rsi_50_day",
+    "description": "Calculates the 50-day Relative Strength Index for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_macd_short",
+    "description": "Calculates the short-term MACD for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_macd_long",
+    "description": "Calculates the long-term MACD for a given cryptocurrency",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "df": {
+          "type": "object",
+          "description": "Pandas DataFrame containing historical data"
+        }
+      }
+    }
+  }
+]

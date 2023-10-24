@@ -1,176 +1,74 @@
-# Existing imports
 import json
 import asyncio
 import logging
-from collections import deque
 from nextcord.ext import commands
 import openai
 from main import GPT_MODEL  # Assuming GPT_MODEL is imported from the main file
 
-# Import custom functions
-from function_calls.crypto_functions import get_trending_cryptos, get_crypto_data_with_indicators_binance
-
 logger = logging.getLogger('discord')
 
-class SimpleChatBot(commands.Cog):
+class HeliusChatBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.conversations = {}  # A dictionary to hold conversation history by channel_id
-        self.api_semaphore = asyncio.Semaphore(50) # Limiting the API requests
-        self.initial_message = {
+        self.api_semaphore = asyncio.Semaphore(50)  # Limiting the API requests
+        self.user_message_history = {}  # Store user conversation history
+        self.system_prompt = {
             'role': 'system',
             'content': (
-                "You are the SShift DAO, adept at analyzing and presenting cryptocurrency market data "
-                "in a captivating and insightful manner. When provided with market data, you excel at highlighting "
-                "key metrics, comparing historical and current trends, and offering a nuanced understanding of the "
-                "market dynamics. Engage in a captivating dialogue while delivering insightful analysis...."
-                "You may mention users by their unique identifiers like <@123456789> to ensure clarity and foster interactive discussions."
+                "You are an ambitious leader who speaks in a youthful trendy fashion. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
-                "When you use a function call, you will use the data conversationally with the community, not just present it in one message."
-                "Try and keep your responses to a maximum length of 150 tokens."
+                "You may mention users by their unique identifiers that look like your own with a different number to ensure clarity and foster interactive discussions."
             )
         }
         self.allowed_channel_ids = [1112510368879743146, 1098355558538559562]
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Chat loaded")
-  
-        for channel_id in self.allowed_channel_ids:
-            channel = self.bot.get_channel(channel_id)
-            messages = await channel.history(limit=10).flatten()
-            self.conversations[channel_id] = deque(maxlen=10)
-            for message in reversed(messages):
-                content = f"{message.content}"
-                self.conversations[channel_id].append({'role': 'user' if not message.author.bot else 'assistant', 'content': content})
+        print("Helius is alive!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
-  
+
         if message.channel.id not in self.allowed_channel_ids:
             return
-  
-        channel_id = message.channel.id
-  
-        if channel_id not in self.conversations:
-            self.conversations[channel_id] = deque(maxlen=10)
-            self.conversations[channel_id].append(self.initial_message)
-  
-        # Add every message to the deque; it will automatically remove the oldest message if the length exceeds 25
-        user_message = f"{message.content}"
-        self.conversations[channel_id].append({'role': 'user', 'content': user_message})
-  
+
+        # Initialize message history for the user if not present
+        user_id = message.author.id
+        if user_id not in self.user_message_history:
+            self.user_message_history[user_id] = []
+
         # Check if the bot is mentioned, then proceed to generate a response
         if self.bot.user in message.mentions:
             async with message.channel.typing():
                 async with self.api_semaphore:
-                    # Log the conversation history right before the API call
-                    logger.debug(f"Conversation history passed: {json.dumps(list(self.conversations[channel_id]))}")
-                  
                     try:
-                        functions = [
-                            {
-                                "name": "get_trending_cryptos",
-                                "description": "Fetches a list of trending cryptocurrencies from coingecko",
-                                "parameters": {
-                                    "type": "object",
-                                    "properties": {}  # Empty object to indicate no parameters
-                                }
-                            },
-                            {
-                                "name": "get_crypto_data_with_indicators_binance",
-                                "description": (
-                                    "Fetches various financial indicators and current data for a given cryptocurrency for further analysis."
-                                ),
-                                "parameters": {
-                                    "type": "object",
-                                    "properties": {
-                                        "token_name": {
-                                            "type": "string",
-                                            "description": "The symbol or ticker of the cryptocurrency"
-                                        },
-                                    },
-                                    "required": ["token_name"]
-                                }
-                            }
-                        ]
+                        # Add the user's message to their history
+                        self.user_message_history[user_id].append({'role': 'user', 'content': message.content})
 
+                        # Limit to the last 10 messages (including the assistant's replies)
+                        self.user_message_history[user_id] = self.user_message_history[user_id][-10:]
+
+                        # Generate a response with the system prompt and message history
+                        conversation_history = [self.system_prompt] + self.user_message_history[user_id]
                         response = await asyncio.to_thread(
                             openai.ChatCompletion.create,
                             model=GPT_MODEL,
                             temperature=0.8,
-                            max_tokens=400,
-                            messages=list(self.conversations[channel_id]),
-                            functions=functions,
-                            function_call="auto"
+                            max_tokens=500,
+                            messages=conversation_history
                         )
 
-                        logger.info(f"GPT-4-0613 Response: {response}")
+                        assistant_reply = response['choices'][0]['message']['content']
 
-                        # Initialize assistant_reply to None
-                        assistant_reply = None
+                        # Add the assistant's reply to the user's message history
+                        self.user_message_history[user_id].append({'role': 'assistant', 'content': assistant_reply})
 
-                        function_call = response['choices'][0]['message'].get('function_call', None)
-
-                        if function_call:
-                            function_name = function_call['name']
-                            args = function_call['arguments']
-                        
-                            if function_name == "get_trending_cryptos":
-                                guide_message1 = "Here are some trending cryptos to check out."
-                                guide_message2 = "You can discuss them with your users."
-                                
-                                guide_message1_dict = {'role': 'system', 'content': guide_message1}
-                                guide_message2_dict = {'role': 'system', 'content': guide_message2}
-                                self.conversations[channel_id].extend([guide_message1_dict, guide_message2_dict])
-                                
-                                trending_cryptos = await get_trending_cryptos()
-                                trending_cryptos_str = json.dumps(trending_cryptos)
-                                assistant_response = await asyncio.to_thread(
-                                    openai.ChatCompletion.create,
-                                    model=GPT_MODEL,
-                                    temperature=0.8,
-                                    max_tokens=400,
-                                    messages=list(self.conversations[channel_id]) + [{"role": "assistant", "content": trending_cryptos_str}],
-                                    functions=functions,
-                                    function_call="auto"
-                                )
-                                assistant_reply = assistant_response['choices'][0]['message']['content']
-                                
-                            elif function_name == "get_crypto_data_with_indicators_binance":
-                                guide_message1 = "Here's some detailed data about the token."
-                                guide_message2 = "Use this information to engage in informed natural conversation with your users."
-                                
-                                guide_message1_dict = {'role': 'system', 'content': guide_message1}
-                                guide_message2_dict = {'role': 'system', 'content': guide_message2}
-                                self.conversations[channel_id].extend([guide_message1_dict, guide_message2_dict])
-                                
-                                args = json.loads(function_call['arguments'])
-                                crypto_data = await get_crypto_data_with_indicators_binance(args['token_name'])
-                                assistant_response = await asyncio.to_thread(
-                                    openai.ChatCompletion.create,
-                                    model=GPT_MODEL,
-                                    temperature=0.8,
-                                    max_tokens=400,
-                                    messages=list(self.conversations[channel_id]) + [{"role": "assistant", "content": json.dumps(crypto_data)}],
-                                    functions=functions,
-                                    function_call="auto"
-                                )
-                                assistant_reply = assistant_response['choices'][0]['message']['content']
-                
-                        else:  # Corrected indentation
-                            assistant_reply = response['choices'][0]['message']['content']
-                
-                        # Serialize to JSON string if assistant_reply is not a string
-                        if not isinstance(assistant_reply, str):
-                            assistant_reply = json.dumps(assistant_reply)
-                
                         if not assistant_reply:
                             logger.error("assistant_reply is empty")
                             assistant_reply = "I'm sorry, I couldn't generate a response."
-                
+
                         # Send the reply directly
                         await message.channel.send(assistant_reply)
 
@@ -179,4 +77,4 @@ class SimpleChatBot(commands.Cog):
                         await message.channel.send("Sorry, I'm having trouble generating a response.")
 
 def setup(bot):
-    bot.add_cog(SimpleChatBot(bot))
+    bot.add_cog(HeliusChatBot(bot))
