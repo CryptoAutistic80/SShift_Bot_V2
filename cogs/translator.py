@@ -4,7 +4,7 @@ import nextcord
 from nextcord.ext import commands
 from langdetect import detect, LangDetectException
 from database.database_manager import retrieve_translation_settings, insert_translation, retrieve_translation
-from main import GPT_MODEL
+from main import TRAN_GPT_MODEL
 import openai
 
 def preprocess_message(text):
@@ -120,7 +120,7 @@ class Translator(commands.Cog):
                     {"role": "user", "content": f"Translate the following to English: '{message.content}'"}
                 ]
                 response = openai.ChatCompletion.create(
-                    model=GPT_MODEL,
+                    model=TRAN_GPT_MODEL,
                     messages=chat_message,
                     temperature=0.2,
                     max_tokens=1000,
@@ -204,7 +204,7 @@ class Translator(commands.Cog):
 
                 # Use OpenAI API to get the translation
                 response = openai.ChatCompletion.create(
-                    model=GPT_MODEL,
+                    model=TRAN_GPT_MODEL,
                     messages=chat_message,
                     temperature=0.2,
                     max_tokens=1000,

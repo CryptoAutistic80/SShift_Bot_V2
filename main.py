@@ -14,6 +14,7 @@ openai.api_key = os.environ['OPENAI_KEY']
 
 # Set Constants
 GPT_MODEL = "gpt-4-0613"
+TRAN_GPT_MODEL = "gpt-3.5-turbo"
 
 def setup_logging():
     """Configure logging for the bot."""
