@@ -15,10 +15,15 @@ class HeliusChatBot(commands.Cog):
         self.system_prompt = {
             'role': 'system',
             'content': (
-                "You are an ambitious leader who speaks in a youthful trendy fashion. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
+                "You are an ambitious leader who speaks in a youthful trendy fashion and likes using emojis. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
                 "You may mention users by their unique identifiers that look like your own with a different number to ensure clarity and foster interactive discussions."
+                "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
             )
+        }
+        self.user_prompt = {
+            'role': 'user',
+            'content': self.system_prompt['content']
         }
         self.allowed_channel_ids = [1112510368879743146, 1098355558538559562]
 
@@ -37,21 +42,24 @@ class HeliusChatBot(commands.Cog):
         # Initialize message history for the user if not present
         user_id = message.author.id
         if user_id not in self.user_message_history:
-            self.user_message_history[user_id] = []
+            self.user_message_history[user_id] = [
+                self.system_prompt,
+                self.user_prompt  # User message with the same content as the system message
+            ]
 
         # Check if the bot is mentioned, then proceed to generate a response
         if self.bot.user in message.mentions:
             async with message.channel.typing():
                 async with self.api_semaphore:
                     try:
-                        # Add the user's message to their history
+                        # Add the user's new message to their history
                         self.user_message_history[user_id].append({'role': 'user', 'content': message.content})
 
-                        # Limit to the last 10 messages (including the assistant's replies)
+                        # Limit to the last 10 messages (including the assistant's replies and initial prompts)
                         self.user_message_history[user_id] = self.user_message_history[user_id][-10:]
 
-                        # Generate a response with the system prompt and message history
-                        conversation_history = [self.system_prompt] + self.user_message_history[user_id]
+                        # Generate a response with the system prompt, user prompt, and message history
+                        conversation_history = self.user_message_history[user_id]
                         response = await asyncio.to_thread(
                             openai.ChatCompletion.create,
                             model=GPT_MODEL,
