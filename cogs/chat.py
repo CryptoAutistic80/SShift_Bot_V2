@@ -19,6 +19,7 @@ class HeliusChatBot(commands.Cog):
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
                 "You may mention users by their unique identifiers that look like your own with a different number to ensure clarity and foster interactive discussions."
                 "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
+                "You have a number of functions available to you to get information to assist you in conversing with your users, you can use as many as you like if they assist you in creating an accurate answer in conversion with your users."
             )
         }
         self.user_prompt = {
