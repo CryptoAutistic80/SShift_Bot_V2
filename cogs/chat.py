@@ -3,15 +3,15 @@ import asyncio
 import logging
 from nextcord.ext import commands
 import openai
-from main import GPT_MODEL  # Assuming GPT_MODEL is imported from the main file
+from main import GPT_MODEL
 
 logger = logging.getLogger('discord')
 
 class HeliusChatBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_semaphore = asyncio.Semaphore(50)  # Limiting the API requests
-        self.user_message_history = {}  # Store user conversation history
+        self.api_semaphore = asyncio.Semaphore(50)
+        self.user_message_history = {}
         self.system_prompt = {
             'role': 'system',
             'content': (
@@ -26,7 +26,7 @@ class HeliusChatBot(commands.Cog):
             'role': 'user',
             'content': self.system_prompt['content']
         }
-        self.allowed_channel_ids = [1112510368879743146, 1098355558538559562]
+        self.allowed_channel_ids = [1112510368879743146, 1101204273339056139]
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -85,5 +85,5 @@ class HeliusChatBot(commands.Cog):
                         logger.error(f"Error while generating response: {str(e)}")
                         await message.channel.send("Sorry, I'm having trouble generating a response.")
 
-def setup(bot):
-    bot.add_cog(HeliusChatBot(bot))
+#def setup(bot):
+    #bot.add_cog(HeliusChatBot(bot))
