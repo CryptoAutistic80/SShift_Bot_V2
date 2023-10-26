@@ -3,7 +3,11 @@ import asyncio
 import logging
 from nextcord.ext import commands
 import openai
-from main import GPT_MODEL
+from main import GPT_MODEL  # Replace this with your actual GPT model initialization
+from function_calls.crypto_functions import (
+    get_crypto_data_with_indicators_binance,
+    get_trending_cryptos,
+)
 
 logger = logging.getLogger('discord')
 
@@ -12,6 +16,16 @@ class HeliusChatBot(commands.Cog):
         self.bot = bot
         self.api_semaphore = asyncio.Semaphore(50)
         self.user_message_history = {}
+
+        # Read function metadata from JSON file
+        with open('function_calls/function_metadata.json', 'r') as f:
+          self.function_metadata = json.load(f)
+
+        self.available_functions = {
+            func['name']: globals()[func['name']]
+            for func in self.function_metadata
+        }
+
         self.system_prompt = {
             'role': 'system',
             'content': (
@@ -26,6 +40,7 @@ class HeliusChatBot(commands.Cog):
             'role': 'user',
             'content': self.system_prompt['content']
         }
+
         self.allowed_channel_ids = [1112510368879743146, 1101204273339056139]
 
     @commands.Cog.listener()
@@ -40,50 +55,64 @@ class HeliusChatBot(commands.Cog):
         if message.channel.id not in self.allowed_channel_ids:
             return
 
-        # Initialize message history for the user if not present
         user_id = message.author.id
         if user_id not in self.user_message_history:
             self.user_message_history[user_id] = [
                 self.system_prompt,
-                self.user_prompt  # User message with the same content as the system message
+                self.user_prompt
             ]
 
-        # Check if the bot is mentioned, then proceed to generate a response
         if self.bot.user in message.mentions:
             async with message.channel.typing():
                 async with self.api_semaphore:
                     try:
-                        # Add the user's new message to their history
                         self.user_message_history[user_id].append({'role': 'user', 'content': message.content})
-
-                        # Limit to the last 10 messages (including the assistant's replies and initial prompts)
                         self.user_message_history[user_id] = self.user_message_history[user_id][-10:]
 
-                        # Generate a response with the system prompt, user prompt, and message history
                         conversation_history = self.user_message_history[user_id]
                         response = await asyncio.to_thread(
                             openai.ChatCompletion.create,
                             model=GPT_MODEL,
-                            temperature=0.8,
-                            max_tokens=500,
-                            messages=conversation_history
+                            temperature=0.7,
+                            max_tokens=1000,
+                            messages=conversation_history,
+                            functions=self.function_metadata,
+                            function_call='auto'
                         )
 
                         assistant_reply = response['choices'][0]['message']['content']
 
-                        # Add the assistant's reply to the user's message history
+                        if 'function_call' in response['choices'][0]['message']:
+                            function_name = response['choices'][0]['message']['function_call']['name']
+                            function_args = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+                            function_to_call = self.available_functions[function_name]
+                            function_result = await function_to_call(**function_args)
+
+                            conversation_history.append(
+                                {
+                                    'role': 'function',
+                                    'name': function_name,
+                                    'content': json.dumps(function_result)
+                                }
+                            )
+                            second_response = await asyncio.to_thread(
+                                openai.ChatCompletion.create,
+                                model=GPT_MODEL,
+                                messages=conversation_history
+                            )
+                            assistant_reply = second_response['choices'][0]['message']['content']
+
                         self.user_message_history[user_id].append({'role': 'assistant', 'content': assistant_reply})
 
                         if not assistant_reply:
                             logger.error("assistant_reply is empty")
                             assistant_reply = "I'm sorry, I couldn't generate a response."
 
-                        # Send the reply directly
                         await message.channel.send(assistant_reply)
 
                     except Exception as e:
                         logger.error(f"Error while generating response: {str(e)}")
                         await message.channel.send("Sorry, I'm having trouble generating a response.")
 
-#def setup(bot):
-    #bot.add_cog(HeliusChatBot(bot))
+def setup(bot):
+    bot.add_cog(HeliusChatBot(bot))
