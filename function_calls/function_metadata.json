@@ -9,7 +9,7 @@
   },
   {
     "name": "get_crypto_data_with_indicators_binance",
-    "description": "Fetches various financial indicators and current data for a given cryptocurrency using its ticker symbol to analyse and inform your user about the market conditions. Use the information returned from this function to engage with the user conversationally on the subject matter. You shouldn't share all the data in one message. Do not use this function if the information is already available in the conversation history.",
+    "description": "Fetches various financial indicators and current data for a given cryptocurrency using its ticker symbol to analyse and inform your user about the market conditions. Use this function one time for each currency that data is requested. Use the information returned from this function to engage with the user conversationally on the subject matter. You shouldn't share all the data in one message. Do not use this function if the information is already available in the conversation history.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -19,6 +19,20 @@
         }
       },
       "required": ["token_name"]
+    }
+  },
+  {
+    "name": "query_wolfram_alpha",
+    "description": "Use this function to query Wolfram Alpha for computational answers in areas like chemistry, physics, and geography. Execute complex mathematical calculations, convert units and dates, and solve formulas. Retrieve scientific, geographical, and historical data, as well as information on weather.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The query string to send to Wolfram Alpha, ask it a question."
+        }
+      },
+      "required": ["query"]
     }
   }
 ]

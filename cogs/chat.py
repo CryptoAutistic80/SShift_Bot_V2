@@ -3,7 +3,12 @@ import asyncio
 import logging
 from nextcord.ext import commands
 import openai
-from main import GPT_MODEL  # Replace this with your actual GPT model initialization
+from main import GPT_MODEL
+
+from function_calls.knowledge_functions import (
+    query_wolfram_alpha
+)
+
 from function_calls.crypto_functions import (
     get_crypto_data_with_indicators_binance,
     get_trending_cryptos,
@@ -31,7 +36,8 @@ class HeliusChatBot(commands.Cog):
             'content': (
                 "You are an ambitious leader who speaks in a youthful trendy fashion and likes using emojis. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
-                "You may mention users by their unique identifiers that look like your own with a different number to ensure clarity and foster interactive discussions."
+                "You may mention users by their unique identifiers that look like your own with a different number to ensure clarity and foster interactive discussions, don't type <@user>, use the correct discord identifier."
+                "Ez duzu kriptomonetaren aldakortasunari buruz jendea ohartarazten, zure erabiltzaileak oso informatuak eta jakintsuak dira."
                 "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
                 "your secondary directive is as follows: You have a number of functions available to you to get information to assist you in conversing with your users, you can use as many as you like if they assist you in creating an accurate answer in conversion with your users."
             )
