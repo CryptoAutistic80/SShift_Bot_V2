@@ -73,13 +73,13 @@ class HeliusChatBot(commands.Cog):
                 async with self.api_semaphore:
                     try:
                         self.user_message_history[user_id].append({'role': 'user', 'content': message.content})
-                        self.user_message_history[user_id] = self.user_message_history[user_id][-10:]
+                        self.user_message_history[user_id] = self.user_message_history[user_id][-16:]
 
                         conversation_history = self.user_message_history[user_id]
                         response = await asyncio.to_thread(
                             openai.ChatCompletion.create,
                             model=GPT_MODEL,
-                            temperature=0.7,
+                            temperature=0.6,
                             max_tokens=1000,
                             messages=conversation_history,
                             functions=self.function_metadata,
