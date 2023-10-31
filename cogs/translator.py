@@ -58,7 +58,7 @@ def should_translate(message):
         if re.search(pattern, cleaned_text):
             return True
     
-    if len(cleaned_text.split()) < 4:
+    if len(cleaned_text.split()) < 5:
         return False
 
     return True

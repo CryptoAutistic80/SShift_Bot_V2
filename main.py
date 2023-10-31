@@ -34,9 +34,10 @@ from server import start_server
 openai.api_key = os.environ['OPENAI_KEY']
 
 # Set Constants
-GPT_MODEL = "gpt-4-0613"
+GPT_MODEL = "gpt-3.5-turbo-16k-0613"
 TRAN_GPT_MODEL = "gpt-3.5-turbo"
 WOLFRAM_ID = os.environ['WOLFRAM_ID']
+NEWS_API_KEY = os.environ['NEWS_API_KEY']
 
 
 def setup_logging():
@@ -47,7 +48,7 @@ def setup_logging():
   handler = logging.handlers.RotatingFileHandler(filename='discord.log',
                                                  encoding='utf-8',
                                                  maxBytes=10**7,
-                                                 backupCount=5)
+                                                 backupCount=1)
   console_handler = logging.StreamHandler()
 
   fmt = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
