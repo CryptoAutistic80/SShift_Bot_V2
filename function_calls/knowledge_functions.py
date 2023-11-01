@@ -6,6 +6,7 @@ import aiohttp
 import os
 import datetime 
 import asyncio
+import re
 
 from main import NEWS_API_KEY
 from main import WOLFRAM_ID
@@ -13,7 +14,10 @@ from main import WOLFRAM_ID
 async def query_wolfram_alpha(queries):
     base_url = "https://www.wolframalpha.com/api/v1/llm-api"
     results = {}
-
+  
+    def remove_urls(text):
+        return re.sub(r'http\S+', '', text)
+  
     async with httpx.AsyncClient() as client:
         for query in queries:
             params = {
@@ -21,17 +25,19 @@ async def query_wolfram_alpha(queries):
                 "appid": WOLFRAM_ID
             }
             response = await client.get(base_url, params=params)
+            response_text_no_urls = remove_urls(response.text)
             if response.status_code == 200:
                 try:
-                    results[query] = json.loads(response.text)
+                    results[query] = json.loads(response_text_no_urls)
                 except json.JSONDecodeError:
-                    results[query] = {"error": "Failed to decode JSON", "response_text": response.text}
+                    results[query] = {"error": "Failed to decode JSON", "response_text": response_text_no_urls}
             elif response.status_code == 502:
                 results[query] = {"error": "502 Bad Gateway from Wolfram Alpha"}
             else:
                 results[query] = {"error": f"Failed to query Wolfram Alpha, received HTTP {response.status_code}"}
-
+  
     return results
+
 
 async def get_stock_info(tickers, info_types):
     result = {}

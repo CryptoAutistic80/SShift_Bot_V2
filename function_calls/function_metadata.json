@@ -26,7 +26,7 @@
   },
   {
     "name": "get_crypto_chart",
-    "description": "Generates a candlestick chart for a given cryptocurrency token and a specified timeframe. The chart will be saved as a PNG image and a local URL to access it will be returned. Utilize the URL to engage with the user conversationally by displaying the chart, and optionally discuss the token's market conditions.",
+    "description": "Generates a candlestick graph for a specific cryptocurrency token over a designated timeframe. Provides a public URL for the chart. Present this URL to the user in the format: Your requested chart: [chart](url). Then be ready to engage in a conversation about the market conditions of the token. Remember not to prefix the URL with a !.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -40,11 +40,22 @@
         }
       },
       "required": ["symbol", "timeframe"]
+    },
+    "returns": {
+        "type": "object",
+        "properties": {
+            "chartUrl": {
+                "type": "string",
+                "description": "The publicly accessible URL of the generated PNG chart.",
+                "format": "uri"
+            }
+        },
+        "required": ["chartUrl"]
     }
   },
   {
     "name": "query_wolfram_alpha",
-    "description": "Use this function to query Wolfram Alpha for computational answers in areas like chemistry, physics, and geography. Execute complex mathematical calculations, convert units and dates, and solve formulas. Retrieve scientific, geographical, and historical data, as well as information on weather. It can now handle multiple queries at once, providing a batch of computational knowledge.",
+    "description": "Use this function to query Wolfram Alpha for computational answers in areas like chemistry, physics, and geography. Execute complex mathematical calculations, convert units and dates, and solve formulas. Retrieve scientific, geographical, and historical data, as well as information on weather. It can now handle multiple queries at once, providing a batch of computational knowledge. Do not display any URLs if included in the response, this is very important.",
     "parameters": {
       "type": "object",
       "properties": {

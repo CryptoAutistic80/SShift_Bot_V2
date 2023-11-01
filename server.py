@@ -15,6 +15,14 @@ def members():
 def charts(filename):
     return send_from_directory('static/charts', filename)
 
+@app.route('/view_chart/<path:filename>', methods=['GET'])
+def view_chart(filename):
+    return render_template('chart.html', filename=filename)
+
+@app.route('/robots.txt', methods=['GET'])
+def robots():
+    return send_from_directory('static', 'robots.txt')
+
 def run():
     app.run(host="0.0.0.0", port=8080)
 

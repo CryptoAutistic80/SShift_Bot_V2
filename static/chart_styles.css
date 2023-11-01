@@ -1,0 +1,22 @@
+.body-container {
+  font-family: Arial, sans-serif;
+  background: url('img/chart_background.png') no-repeat center center/cover;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.page-title {
+  font-size: 48px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.chart-image {
+  display: block;
+  max-width: 100%;
+}

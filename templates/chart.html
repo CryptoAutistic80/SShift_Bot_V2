@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chart</title>
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="Candle Chart" />
+    <!-- Ensure the URL in og:image is absolute -->
+    <meta property="og:image" content="https://sshift-bot-v2.cryptoautistic8.repl.co{{ url_for('charts', filename=filename) }}" />
+    <meta property="og:description" content="A detailed chart for requested token" />
+    <!-- Ensure the URL in og:url is absolute -->
+    <meta property="og:url" content="https://sshift-bot-v2.cryptoautistic8.repl.co{{ request.url }}" />
+    <!-- Twitter card image tag -->
+    <meta name="twitter:image" content="https://sshift-bot-v2.cryptoautistic8.repl.co{{ url_for('charts', filename=filename) }}" />
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Link to CSS -->
+    <link rel="stylesheet" type="text/css" href="/static/chart_styles.css">
+</head>
+<body class="body-container">
+    <h1 class="page-title">Chart</h1>
+    <img class="chart-image" src="{{ url_for('charts', filename=filename) }}" alt="Candlestick Chart">
+</body>
+</html>

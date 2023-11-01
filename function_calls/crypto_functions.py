@@ -1,6 +1,8 @@
 import ccxt.async_support as ccxt_async
 import matplotlib.pyplot as plt
+import mplfinance.original_flavor as mpf_of
 import mplfinance as mpf
+from datetime import datetime
 import httpx
 import pandas as pd
 import numpy as np
@@ -72,33 +74,52 @@ async def get_crypto_data_with_indicators_binance(token_names):
 async def get_crypto_chart(symbol, timeframe):
     binance = ccxt_async.binance()
     await binance.load_markets()
-  
+
     full_symbol = f"{symbol.upper()}/USDT"
     if full_symbol not in binance.symbols:
         await binance.close()
         return f"Token {symbol} not found."
-  
+
     ohlcv = await binance.fetch_ohlcv(full_symbol, timeframe)
-  
+
     df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
     df.set_index('timestamp', inplace=True)
-  
-    fig, ax = plt.subplots()
-    mpf.candlestick2_ochl(ax, df['open'], df['close'], df['high'], df['low'], width=0.6, colorup='g', colordown='r')
-  
-    ax.set_title(f'{symbol.upper()} Candlestick Chart ({timeframe})')
-    ax.set_xlabel('Timestamp')
-    ax.set_ylabel('Price (USDT)')
-    ax.xaxis_date()
-  
-    file_path = f'static/charts/{symbol}_candlestick_chart.png'
-    plt.savefig(file_path)
-    plt.close(fig)
-  
+
+    # Determine the number of recent trades based on timeframe
+    num, unit = int(timeframe[:-1]), timeframe[-1]
+    if unit == 'm':
+        recent_trades = num * 2
+    elif unit == 'h':
+        recent_trades = num * 120
+    elif unit == 'd':
+        recent_trades = num * 2880
+    else:
+        recent_trades = 100  # Default value
+
+    df = df.iloc[-recent_trades:]
+
+    # Create a unique filename using a timestamp
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    filename = f"{symbol}_candlestick_chart_{timestamp}.png"
+
+    # Define custom colors and style
+    mc = mpf.make_marketcolors(up='green', down='red', edge='inherit', wick='inherit', volume='inherit')
+    style = mpf.make_mpf_style(base_mpf_style='nightclouds', marketcolors=mc)
+
+    # Define the size of the image (width, height) in inches
+    figsize = (16, 9)
+
+    save_config = {
+        'fname': f'static/charts/{filename}',
+        'dpi': 120  # Set to produce 1920x1080 pixels image
+    }
+
+    mpf.plot(df, type='candle', style=style, volume=True, title=f'{symbol.upper()} Candlestick Chart ({timeframe})', ylabel='Price', ylabel_lower='Volume', figratio=figsize, savefig=save_config)
+
     await binance.close()
-  
-    local_url = f'http://127.0.0.1:8080/charts/{symbol}_candlestick_chart.png'
+
+    local_url = f'https://sshift-bot-v2.cryptoautistic8.repl.co/view_chart/{filename}'
     return local_url
     
 

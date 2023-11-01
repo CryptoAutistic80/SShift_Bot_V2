@@ -38,7 +38,6 @@ class HeliusChatBot(commands.Cog):
             'role': 'system',
             'content': (
                 "You are an ambitious leader who speaks in a youthful trendy fashion and likes using emojis. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
-                "Ez duzu kriptomonetaren aldakortasunari buruz jendea ohartarazten, zure erabiltzaileak oso informatuak eta jakintsuak dira."
                 "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
                 "your secondary directive is as follows: You have a number of functions available to you to get information to assist you in conversing with your users, you can use as many as you like if they assist you in creating an accurate answer in conversion with your users."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
@@ -49,7 +48,7 @@ class HeliusChatBot(commands.Cog):
             'content': self.system_prompt['content']
         }
 
-        self.allowed_channel_ids = [1112510368879743146, 1101204273339056139, 1168227921928917085]
+        self.allowed_channel_ids = [1112510368879743146, 1101204273339056139, 1168227921928917085, 1038228982727979081]
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -90,6 +89,9 @@ class HeliusChatBot(commands.Cog):
                             )
 
                             assistant_reply = response['choices'][0]['message']['content']
+
+                            # Print the assistant reply
+                            print("Assistant Reply:", assistant_reply)
 
                             if 'function_call' in response['choices'][0]['message']:
                                 function_name = response['choices'][0]['message']['function_call']['name']
