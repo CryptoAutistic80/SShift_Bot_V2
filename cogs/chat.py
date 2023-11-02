@@ -48,7 +48,7 @@ class HeliusChatBot(commands.Cog):
             'content': self.system_prompt['content']
         }
 
-        self.allowed_channel_ids = [1112510368879743146, 1101204273339056139, 1168227921928917085, 1038228982727979081]
+        self.allowed_channel_ids = [1112510368879743146, 1098355558538559564, 1101204273339056139, 1168227921928917085, 1038228982727979081]
 
     @commands.Cog.listener()
     async def on_ready(self):
