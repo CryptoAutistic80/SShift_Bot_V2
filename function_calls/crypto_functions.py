@@ -2,6 +2,7 @@ import ccxt.async_support as ccxt_async
 import matplotlib.pyplot as plt
 import mplfinance.original_flavor as mpf_of
 import mplfinance as mpf
+import pandas_ta as ta
 from datetime import datetime
 import httpx
 import pandas as pd
@@ -99,6 +100,15 @@ async def get_crypto_chart(symbol, timeframe):
 
     df = df.iloc[-recent_trades:]
 
+    # Calculate EMAs
+    df['ema12'] = df['close'].ewm(span=12, adjust=False).mean()
+    df['ema26'] = df['close'].ewm(span=26, adjust=False).mean()
+
+    # Calculate Bollinger Bands
+    df['BBL'] = df['close'].rolling(window=20).mean() - (df['close'].rolling(window=20).std() * 2)
+    df['BBM'] = df['close'].rolling(window=20).mean()
+    df['BBU'] = df['close'].rolling(window=20).mean() + (df['close'].rolling(window=20).std() * 2)
+
     # Create a unique filename using a timestamp
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     filename = f"{symbol}_candlestick_chart_{timestamp}.png"
@@ -115,13 +125,24 @@ async def get_crypto_chart(symbol, timeframe):
         'dpi': 120  # Set to produce 1920x1080 pixels image
     }
 
-    mpf.plot(df, type='candle', style=style, volume=True, title=f'{symbol.upper()} Candlestick Chart ({timeframe})', ylabel='Price', ylabel_lower='Volume', figratio=figsize, savefig=save_config)
+    # Make EMA and Bollinger Bands plots
+    apds = [
+        mpf.make_addplot(df['ema12'], color='blue'),
+        mpf.make_addplot(df['ema26'], color='orange'),
+        mpf.make_addplot(df['BBL'], color='grey'),
+        mpf.make_addplot(df['BBM'], color='grey'),
+        mpf.make_addplot(df['BBU'], color='grey')
+    ]
+
+    # Plot everything together
+    mpf.plot(df, type='candle', style=style, volume=True, addplot=apds, title=f"{symbol.upper()} Candlestick Chart ({timeframe})", ylabel="Price (USDT)", ylabel_lower="Volume", figratio=figsize, savefig=save_config)
 
     await binance.close()
 
     local_url = f'https://sshift-bot-v2.cryptoautistic8.repl.co/view_chart/{filename}'
     return local_url
-    
+
+
 
 async def get_trending_cryptos():
     async with httpx.AsyncClient() as client:

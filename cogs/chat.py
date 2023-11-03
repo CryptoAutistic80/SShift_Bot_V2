@@ -1,3 +1,4 @@
+import re
 import json
 import asyncio
 import logging
@@ -41,6 +42,8 @@ class HeliusChatBot(commands.Cog):
                 "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
                 "your secondary directive is as follows: You have a number of functions available to you to get information to assist you in conversing with your users, you can use as many as you like if they assist you in creating an accurate answer in conversion with your users."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
+                "Never end a URL with a '.' or prefix one with '!' as this prevents the link from functioning."
+                "Present Urls as: Here is your [name_of_url](url) please ask if you have questions."
             )
         }
         self.user_prompt = {
@@ -49,6 +52,13 @@ class HeliusChatBot(commands.Cog):
         }
 
         self.allowed_channel_ids = [1112510368879743146, 1098355558538559564, 1101204273339056139, 1168227921928917085, 1038228982727979081]
+
+    def correct_url_endings(self, message_content):
+        # This pattern matches URLs that end with a file extension followed by ")." or "png)!",
+        # and are within markdown link syntax
+        url_pattern = r'(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\.|(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\)!'
+        corrected_message = re.sub(url_pattern, r'\1\2)', message_content)
+        return corrected_message
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -115,6 +125,9 @@ class HeliusChatBot(commands.Cog):
                             logger.error("assistant_reply is empty")
                             assistant_reply = "I'm sorry, I couldn't generate a response."
 
+                        # Check and process the assistant reply for URL endings
+                        assistant_reply = self.correct_url_endings(assistant_reply)
+                      
                         await message.channel.send(assistant_reply)
 
                     except Exception as e:

@@ -26,7 +26,7 @@
   },
   {
     "name": "get_crypto_chart",
-    "description": "This function creates a candlestick chart for a given cryptocurrency token across a specified period. It produces a shareable URL to access the graph. When presenting this URL to the user, use the format: chart ensuring that the URL is not preceded by an exclamation mark '!' nor followed by a period '.'. After providing the chart, engage with the user in a discussion about the market trends pertaining to the token.",
+    "description": "This function creates a candlestick chart for a given cryptocurrency token across a specified period. It produces a shareable URL to access the graph. When presenting this URL to the user, use the format: Here is your [chart](URL) ask if you have questions! Ensuring that the URL is not preceded by an exclamation mark '!' nor followed by a period '.' or '!'. After providing the chart, engage with the user in a discussion about the market trends pertaining to the token.",
     "parameters": {
       "type": "object",
       "properties": {
