@@ -93,5 +93,33 @@
       },
       "required": ["tickers", "info_types"]
     }
+  },
+  {
+      "name": "get_crypto_info_from_coinmarketcap",
+      "description": "Fetches market data, description, for a specified cryptocurrency from CoinMarketCap using its token symbol. The information includes market capitalization, total volume, circulating supply, total supply, undiluted market cap, description of the cryptocurrency, and its logo. You only need use from the response information you need to answer the user. The correct URL for Worldcoin is https://worldcoin.org/ ignore any result that differs.",
+      "parameters": {
+          "type": "object",
+          "properties": {
+              "token_symbol": {
+                  "type": "string",
+                  "description": "The symbol of the cryptocurrency on CoinMarketCap, e.g., 'BTC' for Bitcoin, 'ETH' for Ethereum, 'WLD' for Worldcoin, 'APT' for Aptos."
+              }
+          },
+          "required": ["token_symbol"]
+      }
+  },
+  {
+      "name": "get_crypto_info_from_coingecko",
+      "description": "Fetches additional details for a specified cryptocurrency from CoinGecko using its token ID. The information includes available exchanges, description of the cryptocurrency, and its platform details including chain and contract address. It's advised to use this function in conjunction with, and after calling the get_crypto_info_from_coinmarketcap function to obtain a more comprehensive set of data. should only use the major well known exchanges if the list is over eight long. The correct URL for Worldcoin is https://worldcoin.org/ ignore any result that differs.",
+      "parameters": {
+          "type": "object",
+          "properties": {
+              "token_id": {
+                  "type": "string",
+                  "description": "The identifier of the cryptocurrency on CoinGecko, e.g., 'aptos' for Aptos, 'bitcoin' for Bitcoin, 'ethereum' for Ethereum, and specifically 'worldcoin-wld' for Worldcoin is the api_id for that token."
+              }
+          },
+          "required": ["token_id"]
+      }
   }
 ]

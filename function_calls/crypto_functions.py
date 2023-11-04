@@ -8,6 +8,7 @@ import httpx
 import pandas as pd
 import numpy as np
 import asyncio
+import os
 
 async def get_crypto_data_with_indicators_binance(token_names):
     binance = ccxt_async.binance()
@@ -161,3 +162,102 @@ async def get_trending_cryptos():
         trending_list.append(coin_info)
   
     return trending_list
+
+
+async def get_crypto_info_from_coinmarketcap(token_symbol: str):
+    api_key = os.environ.get('CMC_API_KEY')
+    headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': api_key,
+    }
+
+    # Function to get basic information such as price, volume, supply, etc.
+    async def get_basic_info(symbol):
+        url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+        params = {'symbol': symbol, 'convert': 'USD'}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+            if response.status_code != 200:
+                return None
+            return response.json().get('data', {}).get(symbol.upper(), {})
+
+    # Function to get metadata like descriptions, logo, etc.
+    async def get_metadata(symbol):
+        url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/info"
+        params = {'symbol': symbol}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+            if response.status_code != 200:
+                return None
+            return response.json().get('data', {}).get(symbol.upper(), {})
+
+    # Function to get market pair (exchange) information
+    async def get_market_pairs(symbol):
+        url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/market-pairs/latest"
+        params = {'symbol': symbol}
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+            if response.status_code != 200:
+                return None
+            return response.json().get('data', {}).get('market_pairs', [])
+
+    # Call the above functions asynchronously
+    basic_info = await get_basic_info(token_symbol)
+    metadata = await get_metadata(token_symbol)
+    market_pairs_response = await get_market_pairs(token_symbol)
+
+    if not basic_info:
+        return "Failed to retrieve basic info"
+
+    quote = basic_info.get('quote', {}).get('USD', {})
+    market_cap = quote.get('market_cap')
+    current_price = quote.get('price')
+    total_volume = quote.get('volume_24h')
+    circulating_supply = basic_info.get('circulating_supply')
+    total_supply = basic_info.get('total_supply')
+    undiluted_market_cap = current_price * total_supply if current_price and total_supply else None
+
+    # Check if metadata is None before trying to access its properties
+    description = metadata.get('description') if metadata else None
+    logo = metadata.get('logo') if metadata else None
+    urls = metadata.get('urls', {}) if metadata else {}
+
+    # Extract exchange information from market pairs
+    exchanges = [pair['exchange']['name'] for pair in market_pairs_response] if market_pairs_response else []
+
+    result = {
+        'market_cap': market_cap,
+        'current_price': current_price,
+        'total_volume': total_volume,
+        'circulating_supply': circulating_supply,
+        'total_supply': total_supply,
+        'undiluted_market_cap': undiluted_market_cap,
+        'description': description,
+        'logo': logo,
+        'urls': urls,
+        'exchanges': exchanges,
+    }
+
+    return result
+
+async def get_crypto_info_from_coingecko(token_id: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f'https://api.coingecko.com/api/v3/coins/{token_id}')
+        if response.status_code != 200:
+            return f"Failed to retrieve data: {response.status_code}"
+  
+        data = response.json()
+  
+        exchanges_data = data.get('tickers', [])
+        exchanges = [exchange.get('market', {}).get('name', None) for exchange in exchanges_data]
+  
+        description = data.get('description', {}).get('en', None)
+        platforms = data.get('platforms', {})
+  
+        result = {
+            'available_exchanges': exchanges,
+            'description': description,
+            'platforms': platforms
+        }
+  
+        return result

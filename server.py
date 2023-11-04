@@ -1,7 +1,13 @@
 from flask import Flask, render_template, send_from_directory
 from threading import Thread
+from datetime import datetime
+import os  # Import os to access environment variables
 
 app = Flask(__name__, static_folder='static')
+
+@app.route('/keepalive', methods=['GET', 'HEAD'])
+def keep_alive():
+    return f"Keep alive check at {datetime.utcnow()} UTC", 200
 
 @app.route('/')
 def index():
@@ -24,7 +30,8 @@ def robots():
     return send_from_directory('static', 'robots.txt')
 
 def run():
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get('PORT', 8080))  # Get the PORT environment variable, default to 8080 if not found
+    app.run(host="0.0.0.0", port=port)
 
 def start_server():
     t = Thread(target=run)

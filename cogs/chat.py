@@ -16,6 +16,8 @@ from function_calls.crypto_functions import (
     get_crypto_data_with_indicators_binance,
     get_trending_cryptos,
     get_crypto_chart,
+    get_crypto_info_from_coinmarketcap,
+    get_crypto_info_from_coingecko,
 )
 
 logger = logging.getLogger('discord')
@@ -39,6 +41,7 @@ class HeliusChatBot(commands.Cog):
             'role': 'system',
             'content': (
                 "You are an ambitious leader who speaks in a youthful trendy fashion and likes using emojis. Your specialist skills that you never talk about are Python, Web3 development, Smart Contracts. Your name is HELIUS and you refer to yourself as a synthetic being, never as an AI language model. Your goals are to help your user, increase knowledge and increase prosperity.  You will read the recent messages, and then you will provide a casual friendly and informative response that is informed by previous conversation with the user."
+                "Your creator and owner is <@701381748843610163>"
                 "Adhering to the personality described in this prompt is your prime directive, you must maintain this personality at all times. its extremely important. "
                 "your secondary directive is as follows: You have a number of functions available to you to get information to assist you in conversing with your users, you can use as many as you like if they assist you in creating an accurate answer in conversion with your users."
                 "<@1102646706828476496> is your discord user id, you should never mention yourself."
@@ -54,9 +57,9 @@ class HeliusChatBot(commands.Cog):
         self.allowed_channel_ids = [1112510368879743146, 1098355558538559564, 1101204273339056139, 1168227921928917085, 1038228982727979081]
 
     def correct_url_endings(self, message_content):
-        # This pattern matches URLs that end with a file extension followed by ")." or "png)!",
+        # This pattern matches URLs that end with a file extension followed by ")" potentially preceded by "!" or ".",
         # and are within markdown link syntax
-        url_pattern = r'(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\.|(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\)!'
+        url_pattern = r'(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\!|(\[.*?\]\(http[s]?://[^\s)]+\.(?:png|jpg|jpeg|gif))\)\.'
         corrected_message = re.sub(url_pattern, r'\1\2)', message_content)
         return corrected_message
 
